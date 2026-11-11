@@ -1,0 +1,16 @@
+{
+  "name": "project51-classroom-dashboard",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "vite build --base=/project51-classroom-dashboard/ --outDir docs",
+    "dev": "vite --host 127.0.0.1"
+  },
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "mqtt": "^5.16.1",
+    "vite": "^8.3.7"
+  },
+  "private": true,
+  "description": "移远杯智慧教室实时看板"
+}

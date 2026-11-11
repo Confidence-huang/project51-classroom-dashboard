@@ -1,0 +1,83 @@
+<!doctype html>
+<!-- 智慧教室看板入口：只呈现浏览器收到的数据；账号密码不写在网页文件中。 -->
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e9f1ee" />
+    <meta name="description" content="移远杯智慧教室 4G 实时数据看板" />
+    <title>智慧教室 · 实时看板</title>
+    <script type="module" crossorigin src="/project51-classroom-dashboard/assets/index-FbLVjtFe.js"></script>
+    <link rel="stylesheet" crossorigin href="/project51-classroom-dashboard/assets/index-B0dDk7zv.css">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">Q<span>·</span></span><span>智慧教室 <small>AIoT LIVE</small></span></div>
+        <span class="edition">移远杯 · 联调版</span>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <div>
+            <p class="eyebrow">4G → 云端 → 手机</p>
+            <h1 id="page-title">看见教室的<br /><em>每一次变化。</em></h1>
+            <p class="intro-copy">这里展示设备上报的实时数据。尚未接入的项目会明确显示“等待数据”，测试消息不会冒充传感器读数。</p>
+          </div>
+          <div class="connection-card">
+            <div class="connection-head"><span>连接状态</span><span id="broker-pill" class="pill pill-idle">未连接</span></div>
+            <p id="connection-detail" class="connection-detail">输入连接信息后，接收 EC200U 的 4G 消息。</p>
+            <button id="settings-button" class="button button-primary" type="button">设置云端连接 <span aria-hidden="true">↗</span></button>
+            <button id="disconnect-button" class="button button-quiet" type="button" hidden>断开连接</button>
+          </div>
+        </section>
+
+        <section class="flow" aria-label="当前数据链路">
+          <span class="flow-title">数据从哪里来</span>
+          <span class="flow-step">K230 / 传感器 <small>待队长联调</small></span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">STM32 + EC200U <small>4G 上报</small></span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">EMQX <small>MQTT 转发</small></span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">当前网页 <small>实时订阅</small></span>
+        </section>
+
+        <section class="section-heading" aria-labelledby="room-title">
+          <div><p class="eyebrow">CLASSROOM 01</p><h2 id="room-title">教室实时状态</h2></div>
+          <div class="freshness"><span id="data-pill" class="pill pill-idle">等待真实数据</span><small id="last-updated">暂无采集时间</small></div>
+        </section>
+
+        <section class="readings" aria-label="实时测量值">
+          <article class="reading reading-people"><div class="reading-top"><span>识别人数</span><span class="reading-symbol">◌</span></div><div class="reading-value"><strong id="people-count">—</strong><span>人</span></div><p>来自 K230，经 STM32 上报</p></article>
+          <article class="reading"><div class="reading-top"><span>CO₂ 浓度</span><span class="reading-symbol">CO₂</span></div><div class="reading-value"><strong id="co2-ppm">—</strong><span>ppm</span></div><p>环境传感器</p></article>
+          <article class="reading"><div class="reading-top"><span>温度</span><span class="reading-symbol">°</span></div><div class="reading-value"><strong id="temperature-c">—</strong><span>°C</span></div><p>环境传感器</p></article>
+          <article class="reading"><div class="reading-top"><span>相对湿度</span><span class="reading-symbol">% RH</span></div><div class="reading-value"><strong id="humidity-pct">—</strong><span>%</span></div><p>环境传感器</p></article>
+          <article class="reading"><div class="reading-top"><span>环境照度</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span>lx</span></div><p>环境传感器</p></article>
+        </section>
+
+        <section class="lower-grid">
+          <article class="panel link-panel"><div class="panel-head"><div><p class="eyebrow">LINK CHECK</p><h2>4G 链路测试</h2></div><span class="signal-icon" aria-hidden="true">↗</span></div><p id="link-summary" class="link-summary">尚未收到 EC200U 测试消息</p><p class="panel-note">测试主题已验证：<code>classroom/demo/ec200u/link_test</code></p><small id="link-updated">等待本次连接的消息</small></article>
+          <article class="panel message-panel"><div class="panel-head"><div><p class="eyebrow">MESSAGE LOG</p><h2>最近收到的消息</h2></div><span id="message-count" class="count">0 条</span></div><ul id="message-list" class="message-list"><li class="empty-message">连接后，新消息会显示在这里。</li></ul></article>
+        </section>
+
+        <p class="data-note">说明：图中的真实采集字段仍需团队确认。网页只显示本次打开后收到的消息，历史存储与告警尚未接入。</p>
+      </main>
+      <footer><span>移远杯 · 智慧教室系统</span><span>当前版本：实时展示联调</span></footer>
+    </div>
+
+    <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
+      <form id="connection-form" method="dialog" autocomplete="off">
+        <div class="dialog-head"><div><p class="eyebrow">MQTT OVER WSS</p><h2 id="settings-title">连接云端</h2></div><button id="close-settings" class="close-button" type="button" aria-label="关闭">×</button></div>
+        <p class="dialog-copy">密码只在当前页面的内存中用于连接，不会写入网页文件或浏览器本地存储。连接后可订阅测试主题及团队约定的真实数据主题。</p>
+        <label>EMQX 主机<input id="broker-host" name="brokerHost" type="text" inputmode="url" required pattern="[A-Za-z0-9.-]+" value="i1103de1.ala.cn-hangzhou.emqxsl.cn" /></label>
+        <label>用户名<input id="broker-user" name="brokerUser" type="text" required value="classroom_test" /></label>
+        <label>密码<input id="broker-password" name="brokerPassword" type="password" required autocomplete="off" /></label>
+        <label>真实数据主题 <small>待与队长确认</small><input id="telemetry-topic" name="telemetryTopic" type="text" required value="classroom/room01/telemetry" /></label>
+        <p id="form-message" class="form-message" role="status"></p>
+        <button class="button button-primary button-full" type="submit">连接并接收数据</button>
+      </form>
+    </dialog>
+
+  </body>
+</html>
