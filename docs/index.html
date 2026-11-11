@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#e9f1ee" />
     <meta name="description" content="移远杯智慧教室 4G 实时数据看板" />
     <title>智慧教室 · 实时看板</title>
-    <script type="module" crossorigin src="/project51-classroom-dashboard/assets/index-FbLVjtFe.js"></script>
-    <link rel="stylesheet" crossorigin href="/project51-classroom-dashboard/assets/index-B0dDk7zv.css">
+    <script type="module" crossorigin src="/project51-classroom-dashboard/assets/index-CUwcKR6H.js"></script>
+    <link rel="stylesheet" crossorigin href="/project51-classroom-dashboard/assets/index-MRreMxc8.css">
   </head>
   <body>
     <div class="page-shell">
@@ -41,6 +41,12 @@
           <span class="flow-step">EMQX <small>MQTT 转发</small></span>
           <span class="flow-arrow">→</span>
           <span class="flow-step">当前网页 <small>实时订阅</small></span>
+        </section>
+
+        <section class="receipt" aria-live="polite" aria-label="网页消息接收状态">
+          <span class="receipt-label">本次页面收到的消息</span>
+          <strong id="latest-message">尚未收到新消息</strong>
+          <small id="latest-message-time">连接后发布一条新消息即可验证</small>
         </section>
 
         <section class="section-heading" aria-labelledby="room-title">

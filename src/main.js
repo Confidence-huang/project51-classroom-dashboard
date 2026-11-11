@@ -8,7 +8,7 @@ import './style.css'                 // 看板在电脑和手机上共用同一�
 
 // --- 页面数据 ---
 const elements = Object.fromEntries( // 所有可变区域集中列出，便于队友找显示位置。
-  ['broker-pill','connection-detail','data-pill','last-updated','people-count','co2-ppm','temperature-c','humidity-pct','light-lux','link-summary','link-updated','message-list','message-count','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','form-message','settings-button','disconnect-button','close-settings']
+  ['broker-pill','connection-detail','data-pill','last-updated','people-count','co2-ppm','temperature-c','humidity-pct','light-lux','link-summary','link-updated','message-list','message-count','latest-message','latest-message-time','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','form-message','settings-button','disconnect-button','close-settings']
     .map(id => [id, document.getElementById(id)])
 )
 
@@ -56,6 +56,8 @@ function showMessage(topic, label, payload) {
   if (elements['message-list'].children.length > 20) elements['message-list'].lastElementChild.remove()
   state.messages += 1
   elements['message-count'].textContent = `${state.messages} 条`
+  elements['latest-message'].textContent = label          // 页面上方同步提示，避免只在底部日志里出现。
+  elements['latest-message-time'].textContent = `本机接收 ${time.textContent}`
 }
 
 // --- 仅按已约定格式显示真实遥测 ---
@@ -78,6 +80,10 @@ function receive(topic, bytes) {
     elements['link-summary'].textContent = `收到 EC200U 链路测试 · 序号 ${data.seq ?? '—'}`
     elements['link-updated'].textContent = `本机接收 ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
     showMessage(topic, '4G 链路测试', raw)
+    return
+  }
+  if (topic === linkTopic && data?.type === 'manual_test') {
+    showMessage(topic, 'EMQX 手动测试已收到（未经过 4G）', raw) // 手动发布只证明云端到网页。
     return
   }
   if (topic === state.telemetryTopic && data?.type === 'telemetry') {
