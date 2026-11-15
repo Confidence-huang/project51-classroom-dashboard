@@ -67,8 +67,9 @@ function showTelemetry(data, receivedAt = new Date().toISOString()) {
   }
   state.lastTelemetry = Date.parse(data.captured_at || receivedAt) // 保留消息重放不能伪装成刚采到的新数据。
   state.simulated = data.simulated === true       // 看板显式区分模拟和真实采样。
+  const simulatedSource = data.source === 'stm32_micropython_sim' ? '板端模拟 · 非传感器实测' : '电脑生成 · 非实物采集'
   for (const id of ['people-source','temperature-source','humidity-source','light-source']) {
-    elements[id].textContent = state.simulated ? '电脑生成 · 非实物采集' : id === 'people-source' ? '来自 K230，经 STM32 上报' : '环境传感器'
+    elements[id].textContent = state.simulated ? simulatedSource : id === 'people-source' ? '来自 K230，经 STM32 上报' : '环境传感器'
   }
   elements['last-updated'].textContent = `${state.simulated ? '模拟 · ' : ''}接收 ${new Date(receivedAt).toLocaleTimeString('zh-CN', { hour12: false })}`
   showFreshness()
