@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "build": "vite build --base=/project51-classroom-dashboard/ --outDir docs",
-    "dev": "vite --host 127.0.0.1"
+    "dev": "vite --host 127.0.0.1",
+    "simulate": "node pipeline/publish.js",
+    "history": "node pipeline/history.js"
   },
   "license": "MIT",
   "type": "module",
