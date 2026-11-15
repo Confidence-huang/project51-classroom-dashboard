@@ -53,10 +53,10 @@
         </section>
 
         <section class="readings" aria-label="实时测量值">
-          <article class="reading reading-people"><div class="reading-top"><span>识别人数</span><span class="reading-symbol">◌</span></div><div class="reading-value"><strong id="people-count">—</strong><span>人</span></div><p>来自 K230，经 STM32 上报</p></article>
-          <article class="reading"><div class="reading-top"><span>温度</span><span class="reading-symbol">°</span></div><div class="reading-value"><strong id="temperature-c">—</strong><span>°C</span></div><p>环境传感器</p></article>
-          <article class="reading"><div class="reading-top"><span>相对湿度</span><span class="reading-symbol">% RH</span></div><div class="reading-value"><strong id="humidity-pct">—</strong><span>%</span></div><p>环境传感器</p></article>
-          <article class="reading"><div class="reading-top"><span>环境照度</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span>lx</span></div><p>环境传感器</p></article>
+          <article class="reading reading-people"><div class="reading-top"><span>识别人数</span><span class="reading-symbol">◌</span></div><div class="reading-value"><strong id="people-count">—</strong><span>人</span></div><p id="people-source">计划由 K230 提供</p></article>
+          <article class="reading"><div class="reading-top"><span>温度</span><span class="reading-symbol">°</span></div><div class="reading-value"><strong id="temperature-c">—</strong><span>°C</span></div><p id="temperature-source">计划由环境传感器提供</p></article>
+          <article class="reading"><div class="reading-top"><span>相对湿度</span><span class="reading-symbol">% RH</span></div><div class="reading-value"><strong id="humidity-pct">—</strong><span>%</span></div><p id="humidity-source">计划由环境传感器提供</p></article>
+          <article class="reading"><div class="reading-top"><span>环境照度</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span>lx</span></div><p id="light-source">计划由环境传感器提供</p></article>
         </section>
 
         <section class="lower-grid">
@@ -64,7 +64,13 @@
           <article class="panel message-panel"><div class="panel-head"><div><p class="eyebrow">MESSAGE LOG</p><h2>最近收到的消息</h2></div><span id="message-count" class="count">0 条</span></div><ul id="message-list" class="message-list"><li class="empty-message">连接后，新消息会显示在这里。</li></ul></article>
         </section>
 
-        <p class="data-note">说明：图中的真实采集字段仍需团队确认。网页只显示本次打开后收到的消息，历史存储与告警尚未接入。</p>
+        <section class="panel history-panel" aria-labelledby="history-title">
+          <div class="panel-head"><div><p class="eyebrow">HISTORY</p><h2 id="history-title">已存储的最近数据</h2></div><span id="history-count" class="count">未连接历史服务</span></div>
+          <p id="history-status" class="panel-note">本机演示会自动读取历史；公开网站需配置已部署的 HTTPS 历史 API。</p>
+          <ul id="history-list" class="history-list"><li>暂无历史记录。</li></ul>
+        </section>
+
+        <p class="data-note">说明：标有“模拟”的数据用于链路验证，不是传感器实测。历史记录来自独立接收服务；未部署该服务时公开网站只显示 MQTT 实时消息。</p>
       </main>
       <footer><span>移远杯 · 智慧教室系统</span><span>当前版本：实时展示联调</span></footer>
     </div>
@@ -77,6 +83,7 @@
         <label>用户名<input id="broker-user" name="brokerUser" type="text" required value="classroom_test" /></label>
         <label>密码<input id="broker-password" name="brokerPassword" type="password" required autocomplete="off" /></label>
         <label>真实数据主题 <small>待与队长确认</small><input id="telemetry-topic" name="telemetryTopic" type="text" required value="classroom/room01/telemetry" /></label>
+        <label>历史 API 地址 <small>可选；公开网站仅填写 HTTPS 地址</small><input id="history-api-url" name="historyApiUrl" type="url" placeholder="https://你的历史服务域名" /></label>
         <p id="form-message" class="form-message" role="status"></p>
         <button class="button button-primary button-full" type="submit">连接并接收数据</button>
       </form>

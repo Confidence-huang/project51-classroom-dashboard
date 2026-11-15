@@ -8,7 +8,7 @@ import './style.css'                 // 看板在电脑和手机上共用同一�
 
 // --- 页面数据 ---
 const elements = Object.fromEntries( // 所有可变区域集中列出，便于队友找显示位置。
-  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','link-summary','link-updated','message-list','message-count','latest-message','latest-message-time','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','form-message','settings-button','disconnect-button','close-settings']
+  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','people-source','temperature-source','humidity-source','light-source','link-summary','link-updated','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
     .map(id => [id, document.getElementById(id)])
 )
 
@@ -19,7 +19,7 @@ const readings = {                            // 约定草案；队长确认数�
   humidity_pct: 'humidity-pct',                // 相对湿度，单位百分比。
   light_lux: 'light-lux',                      // 环境照度，单位 lx。
 }
-const state = { client: null, telemetryTopic: '', lastTelemetry: 0, messages: 0 } // 仅在当前页面内存中保留连接和显示状态。
+const state = { client: null, telemetryTopic: '', lastTelemetry: 0, simulated: false, historyAPI: '', historyConnected: false, messages: 0 } // 仅在当前页面内存中保留连接和显示状态。
 
 // --- 更新连接反馈 ---
 function showConnection(label, detail, kind) {
@@ -32,8 +32,8 @@ function showConnection(label, detail, kind) {
 // --- 更新数据新鲜度 ---
 function showFreshness() {
   const age = Date.now() - state.lastTelemetry       // 以浏览器接收时间判断，不依赖设备时钟。
-  const live = state.client?.connected && age < 30_000
-  const label = !state.lastTelemetry ? '等待真实数据' : live ? '实时数据' : '数据已过期'
+  const live = (state.client?.connected || state.historyConnected) && age < 30_000
+  const label = !state.lastTelemetry ? '等待数据' : state.simulated ? live ? '模拟数据（非实测）' : '模拟数据已过期' : live ? '实时数据' : '数据已过期'
   elements['data-pill'].textContent = label
   elements['data-pill'].className = `pill pill-${live ? 'live' : state.lastTelemetry ? 'warn' : 'idle'}`
 }
@@ -60,14 +60,44 @@ function showMessage(topic, label, payload) {
 }
 
 // --- 仅按已约定格式显示真实遥测 ---
-function showTelemetry(data) {
+function showTelemetry(data, receivedAt = new Date().toISOString()) {
   for (const [field, id] of Object.entries(readings)) {      // 每条遥测是完整快照，缺字段显示为“—”。
     const value = data[field]
     elements[id].textContent = typeof value === 'number' && Number.isFinite(value) ? String(value) : '—'
   }
-  state.lastTelemetry = Date.now()
-  elements['last-updated'].textContent = `本机接收 ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
+  state.lastTelemetry = Date.parse(data.captured_at || receivedAt) // 保留消息重放不能伪装成刚采到的新数据。
+  state.simulated = data.simulated === true       // 看板显式区分模拟和真实采样。
+  for (const id of ['people-source','temperature-source','humidity-source','light-source']) {
+    elements[id].textContent = state.simulated ? '电脑生成 · 非实物采集' : id === 'people-source' ? '来自 K230，经 STM32 上报' : '环境传感器'
+  }
+  elements['last-updated'].textContent = `${state.simulated ? '模拟 · ' : ''}接收 ${new Date(receivedAt).toLocaleTimeString('zh-CN', { hour12: false })}`
   showFreshness()
+}
+
+// --- 从历史服务读取已入库快照并显示最近五条 ---
+async function refreshHistory() {
+  if (!state.historyAPI) return
+  try {
+    const response = await fetch(`${state.historyAPI}/api/telemetry`, { cache: 'no-store' })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const data = await response.json()
+    state.historyConnected = data.broker_connected
+    elements['history-count'].textContent = `${data.history.length} 条`
+    elements['history-status'].textContent = `订阅主题：${data.topic} · ${data.broker_connected ? '云端已连接' : '云端暂时断开'}`
+    elements['history-list'].replaceChildren()
+    for (const row of data.history.slice(0, 5)) {
+      const item = document.createElement('li')
+      const time = document.createElement('time')
+      time.textContent = `${row.simulated ? '模拟 · ' : ''}#${row.seq} · ${new Date(row.received_at).toLocaleString('zh-CN')}`
+      item.append(time, `${row.people_count} 人 · ${row.temperature_c} °C · ${row.humidity_pct}% · ${row.light_lux} lx`)
+      elements['history-list'].append(item)     // textContent 路径，不执行云端载荷中的 HTML。
+    }
+    if (data.latest && Date.parse(data.latest.captured_at) > state.lastTelemetry) showTelemetry(data.latest, data.latest.received_at)
+    showFreshness()
+  } catch (error) {
+    state.historyConnected = false
+    elements['history-status'].textContent = `历史服务不可达：${error.message}`
+  }
 }
 
 // --- MQTT 消息进入页面 ---
@@ -101,6 +131,11 @@ function openConnection(event) {
   const user = elements['broker-user'].value.trim()
   const password = elements['broker-password'].value
   state.telemetryTopic = elements['telemetry-topic'].value.trim()
+  state.historyAPI = elements['history-api-url'].value.trim().replace(/\/$/, '')
+  if (state.historyAPI && !state.historyAPI.startsWith('https://') && location.hostname !== '127.0.0.1') {
+    elements['form-message'].textContent = '公开网站的历史 API 必须使用 HTTPS'
+    return
+  }
   const URL = `wss://${host}:8084/mqtt`           // EMQX Serverless 浏览器加密连接端口。
   state.client = mqtt.connect(URL, {               // 密码只进入 MQTT 客户端内存，不写入文件或本地存储。
     username: user, password,
@@ -121,6 +156,7 @@ function openConnection(event) {
   client.on('reconnect', () => showConnection('重连中', '网络中断，正在重新连接。', 'warn'))
   client.on('error', error => showConnection('连接异常', error.message, 'error'))
   client.on('close', () => { if (state.client === client) showConnection('已断开', '连接中断，等待自动重连。', 'warn') })
+  refreshHistory()                               // 可选历史服务不影响 MQTT 实时订阅。
 }
 
 // --- 触发事件与反馈 ---
@@ -134,3 +170,8 @@ elements['disconnect-button'].addEventListener('click', () => {
   showFreshness()
 })
 setInterval(showFreshness, 1_000)               // 超过 30 秒无遥测时明确提示数据过期。
+if (location.hostname === '127.0.0.1' && location.port === '8899') {
+  state.historyAPI = location.origin            // 本地一体化演示无需再填历史 API。
+  refreshHistory()
+}
+setInterval(refreshHistory, 5_000)              // 每五秒读取已持久化的最新快照。
