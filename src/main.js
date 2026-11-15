@@ -8,14 +8,13 @@ import './style.css'                 // 看板在电脑和手机上共用同一�
 
 // --- 页面数据 ---
 const elements = Object.fromEntries( // 所有可变区域集中列出，便于队友找显示位置。
-  ['broker-pill','connection-detail','data-pill','last-updated','people-count','co2-ppm','temperature-c','humidity-pct','light-lux','link-summary','link-updated','message-list','message-count','latest-message','latest-message-time','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','form-message','settings-button','disconnect-button','close-settings']
+  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','link-summary','link-updated','message-list','message-count','latest-message','latest-message-time','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','form-message','settings-button','disconnect-button','close-settings']
     .map(id => [id, document.getElementById(id)])
 )
 
 const linkTopic = 'classroom/demo/ec200u/link_test'  // 已经由 EC200U 和在线调试页实测的主题。
 const readings = {                            // 约定草案；队长确认数据字段后只改这里。
   people_count: 'people-count',                // K230 识别出的当前人数。
-  co2_ppm: 'co2-ppm',                          // CO₂ 浓度，单位 ppm。
   temperature_c: 'temperature-c',              // 温度，单位摄氏度。
   humidity_pct: 'humidity-pct',                // 相对湿度，单位百分比。
   light_lux: 'light-lux',                      // 环境照度，单位 lx。
