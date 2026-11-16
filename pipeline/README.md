@@ -1,10 +1,10 @@
-# 端到端模拟数据链路
+# 端到端数据链路与本机历史服务
 
 ## 本轮能跑到哪里
 
-电脑上的 `publish.js` 生成“STM32 格式”的模拟快照，经 MQTT 3.1.1/TLS、QoS 1 发往 Broker；`history.js` 订阅同一主题，写入 SQLite 并提供网页历史 API。网页原有 WSS 实时订阅保留，本地一体化网站还会自动读历史。云端 MQTT retained 只保存该主题最新一条；SQLite 保存多条历史，但当前运行在本机，**尚未成为云端数据库**。
+实板 `gen1pro-micropython/src/main.py` 从 AHT20 和 PC5 采集，LCD 同屏显示，经板载 EC200U 以 MQTT 3.1.1/TLS、QoS 1 上报 EMQX。公开网页 WSS 实时订阅同一主题。本机 `history.js` 也订阅该主题，按设备 ID 与序号去重写入 SQLite，并提供网页历史 API。云端 MQTT retained 只保存该主题最新一条；SQLite 保存多条历史，但当前运行在本机，**尚未成为云端数据库**。
 
-`stm32_example.c` 给出板端相同字段的生成逻辑。当前缺队长现有 STM32 固件工程、扩展板 UART 走线和 UART/AT 驱动，所以它只能主机编译演示，不能直接替换现有板卡程序。电脑模拟器直连 Broker，**不经过 EC200U**；此前单独验证过 EC200U 经 4G 向 EMQX 发布测试消息。
+电脑上的 `publish.js` 和 `stm32_example.c` 仍保留为不接实板时的模拟与 C 格式示例。它们不经过 EC200U，不能替代上述实物验收，也不应覆盖已运行的 MicroPython 板端程序。K230 人数接口仍未接入。
 
 ## 唯一约定
 
@@ -24,7 +24,7 @@
 {"schema_version":1,"type":"telemetry","source":"stm32_sim","simulated":true,"device_id":"nucleo-f413zh-sim01","room_id":"room01","seq":1,"captured_at":"2026-11-15T00:00:00Z","people_count":3,"temperature_c":25,"humidity_pct":46,"light_lux":310}
 ```
 
-`captured_at` 是采样 UTC 时间，`seq` 是设备单调序号；四个单位依次为人、°C、%、lx。未来接入真传感器，保持字段不变，改 `source` 并将 `simulated` 设为 `false`。没有 CO₂ 字段。
+`captured_at` 是采样 UTC 时间，`seq` 是设备序号；模拟字段单位依次为人、°C、%、lx。当前实板消息的来源和字段见下一段。没有 CO₂ 字段。
 
 板载实测载荷使用 `source:"stm32_micropython_aht20_ldr"`、`simulated:false`、`people_count:null`、`light_lux:null` 和 `light_raw_u16`（0~65535）。AHT20 的温湿度是实测，光敏 ADC 也是实测原码，但未经 lux 标定；网页和 LCD 均显示 ADC 而不是虚假的 lx。历史服务会把旧 `telemetry` 表中的记录只读复制进 `telemetry_v2`，保留旧表，后续写入新表。
 
@@ -47,11 +47,11 @@ npm run history
 
 密码只通过交互提示进入当前进程环境，不放进文件、Git 或命令行参数。实验完成关闭两个终端，清除当前窗口的 `MQTT_PASSWORD` 环境变量。SQLite 文件 `pipeline/telemetry.sqlite` 被 Git 忽略。
 
-## 实物到货后的替换点
+## 后续集成点
 
-1. STM32 每 5 秒取得 K230 人数和环境数据；没有传感器时继续保留 `simulated:true`。
-2. 根据**对应扩展板原理图与现有工程**确认 UART、逻辑电平、共地和供电，接入 `EC200U_PublishMQTT`。AT 驱动至少执行卡就绪/注册/数据附着、TLS 证书与 SNI、`QMTOPEN`、`QMTCONN`、`QMTPUBEX`，等待每一步的异步成功回执并处理重连。实际引脚、证书文件名与已有客户端索引须现场确认；不要把本机示例直接烧进板卡。
-3. 先只发布固定模拟 JSON，确认 STM32 串口日志、EC200U QoS 1 回执、EMQX 在线调试订阅、网站相同 `device_id+seq`；最后再把四项数值换成实测。
+1. 与队长确定 K230 人数结果的接口和空值语义，再把 `people_count` 接入现有板端快照；未接入前保持 `null`。
+2. 如需显示 `lx`，先用已知照度计为当前 GL5528/分压电路建立并验证标定关系；标定前只展示 `light_raw_u16` ADC 原码。
+3. 将历史订阅服务部署到有持久磁盘的常在线主机，提供受控 HTTPS API；在公开网页配置该 API 后，再做异地手机历史验收。
 
 ## 网站部署边界
 
