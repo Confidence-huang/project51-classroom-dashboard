@@ -124,6 +124,10 @@ function receive(topic, bytes) {
   }
   if (topic === state.telemetryTopic && data?.type === 'telemetry') {
     showTelemetry(data)                          // 只有正式遥测主题和类型同时匹配才刷新读数。
+    if (data.simulated === false && data.source === 'stm32_micropython_aht20_ldr') {
+      elements['link-summary'].textContent = '已收到板端实测上报 · EC200U 4G 链路已验证'
+      elements['link-updated'].textContent = `本机接收 ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
+    }
     showMessage(topic, '教室实时数据', raw)
     return
   }
