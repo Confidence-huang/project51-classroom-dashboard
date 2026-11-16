@@ -32,7 +32,7 @@
 
         <section class="flow" aria-label="当前数据链路">
           <span class="flow-title">数据从哪里来</span>
-          <span class="flow-step">K230 / 传感器 <small>待队长联调</small></span>
+          <span class="flow-step">AHT20 / 光敏 <small>板载采集已验证</small></span>
           <span class="flow-arrow">→</span>
           <span class="flow-step">STM32 + EC200U <small>4G 上报</small></span>
           <span class="flow-arrow">→</span>
@@ -56,7 +56,7 @@
           <article class="reading reading-people"><div class="reading-top"><span>识别人数</span><span class="reading-symbol">◌</span></div><div class="reading-value"><strong id="people-count">—</strong><span>人</span></div><p id="people-source">计划由 K230 提供</p></article>
           <article class="reading"><div class="reading-top"><span>温度</span><span class="reading-symbol">°</span></div><div class="reading-value"><strong id="temperature-c">—</strong><span>°C</span></div><p id="temperature-source">计划由环境传感器提供</p></article>
           <article class="reading"><div class="reading-top"><span>相对湿度</span><span class="reading-symbol">% RH</span></div><div class="reading-value"><strong id="humidity-pct">—</strong><span>%</span></div><p id="humidity-source">计划由环境传感器提供</p></article>
-          <article class="reading"><div class="reading-top"><span>环境照度</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span>lx</span></div><p id="light-source">计划由环境传感器提供</p></article>
+          <article class="reading"><div class="reading-top"><span>环境光照</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span id="light-unit">lx</span></div><p id="light-source">计划由环境传感器提供</p></article>
         </section>
 
         <section class="lower-grid">
@@ -70,7 +70,7 @@
           <ul id="history-list" class="history-list"><li>暂无历史记录。</li></ul>
         </section>
 
-        <p class="data-note">说明：标有“模拟”的数据用于链路验证，不是传感器实测。历史记录来自独立接收服务；未部署该服务时公开网站只显示 MQTT 实时消息。</p>
+        <p class="data-note">说明：板载光敏电阻尚无 lx 标定，实测时显示 ADC 原码；K230 未接入时人数显示“—”。历史记录来自独立接收服务；未部署该服务时公开网站只显示 MQTT 最新消息。</p>
       </main>
       <footer><span>移远杯 · 智慧教室系统</span><span>当前版本：实时展示联调</span></footer>
     </div>

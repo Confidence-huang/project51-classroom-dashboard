@@ -29,8 +29,13 @@ export function read(bytes) {
   if (typeof data.device_id !== 'string' || !data.device_id || typeof data.room_id !== 'string') throw new Error('设备身份不完整')
   if (!Number.isSafeInteger(data.seq) || data.seq < 0 || typeof data.simulated !== 'boolean') throw new Error('序号或模拟标记不正确')
   if (Number.isNaN(Date.parse(data.captured_at))) throw new Error('采样时间不正确')
-  for (const field of ['people_count', 'temperature_c', 'humidity_pct', 'light_lux']) {
+  for (const field of ['temperature_c', 'humidity_pct']) {
     if (typeof data[field] !== 'number' || !Number.isFinite(data[field])) throw new Error(`${field} 不是有限数值`)
   }
+  if (data.people_count !== null && (!Number.isInteger(data.people_count) || data.people_count < 0)) throw new Error('人数不正确')
+  const calibrated = typeof data.light_lux === 'number' && Number.isFinite(data.light_lux)
+  const raw = data.light_lux === null && Number.isInteger(data.light_raw_u16) && data.light_raw_u16 >= 0 && data.light_raw_u16 <= 65535
+  if (!calibrated && !raw) throw new Error('光照缺少有效的 lx 或 ADC 原码')
+  if (data.simulated && (data.people_count === null || !calibrated)) throw new Error('模拟格式缺少完整读数')
   return data
 }

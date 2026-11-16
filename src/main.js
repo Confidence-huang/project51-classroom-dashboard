@@ -8,7 +8,7 @@ import './style.css'                 // 看板在电脑和手机上共用同一�
 
 // --- 页面数据 ---
 const elements = Object.fromEntries( // 所有可变区域集中列出，便于队友找显示位置。
-  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','people-source','temperature-source','humidity-source','light-source','link-summary','link-updated','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
+  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','light-unit','people-source','temperature-source','humidity-source','light-source','link-summary','link-updated','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
     .map(id => [id, document.getElementById(id)])
 )
 
@@ -65,12 +65,16 @@ function showTelemetry(data, receivedAt = new Date().toISOString()) {
     const value = data[field]
     elements[id].textContent = typeof value === 'number' && Number.isFinite(value) ? String(value) : '—'
   }
+  const rawLight = Number.isInteger(data.light_raw_u16) && data.light_lux == null
+  if (rawLight) elements['light-lux'].textContent = String(data.light_raw_u16)
+  elements['light-unit'].textContent = rawLight ? 'ADC' : 'lx'
   state.lastTelemetry = Date.parse(data.captured_at || receivedAt) // 保留消息重放不能伪装成刚采到的新数据。
   state.simulated = data.simulated === true       // 看板显式区分模拟和真实采样。
   const simulatedSource = data.source === 'stm32_micropython_sim' ? '板端模拟 · 非传感器实测' : '电脑生成 · 非实物采集'
-  for (const id of ['people-source','temperature-source','humidity-source','light-source']) {
-    elements[id].textContent = state.simulated ? simulatedSource : id === 'people-source' ? '来自 K230，经 STM32 上报' : '环境传感器'
-  }
+  elements['people-source'].textContent = state.simulated ? simulatedSource : data.people_count == null ? 'K230 尚未接入' : '来自 K230，经 STM32 上报'
+  elements['temperature-source'].textContent = state.simulated ? simulatedSource : '板载 AHT20 实测'
+  elements['humidity-source'].textContent = state.simulated ? simulatedSource : '板载 AHT20 实测'
+  elements['light-source'].textContent = state.simulated ? simulatedSource : rawLight ? '板载光敏电阻 · 未标定 lx' : '环境传感器'
   elements['last-updated'].textContent = `${state.simulated ? '模拟 · ' : ''}接收 ${new Date(receivedAt).toLocaleTimeString('zh-CN', { hour12: false })}`
   showFreshness()
 }
@@ -90,7 +94,9 @@ async function refreshHistory() {
       const item = document.createElement('li')
       const time = document.createElement('time')
       time.textContent = `${row.simulated ? '模拟 · ' : ''}#${row.seq} · ${new Date(row.received_at).toLocaleString('zh-CN')}`
-      item.append(time, `${row.people_count} 人 · ${row.temperature_c} °C · ${row.humidity_pct}% · ${row.light_lux} lx`)
+      const people = row.people_count == null ? '人数待接入' : `${row.people_count} 人`
+      const light = row.light_lux == null ? `${row.light_raw_u16} ADC` : `${row.light_lux} lx`
+      item.append(time, `${people} · ${row.temperature_c} °C · ${row.humidity_pct}% · ${light}`)
       elements['history-list'].append(item)     // textContent 路径，不执行云端载荷中的 HTML。
     }
     if (data.latest && Date.parse(data.latest.captured_at) > state.lastTelemetry) showTelemetry(data.latest, data.latest.received_at)

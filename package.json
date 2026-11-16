@@ -5,7 +5,8 @@
     "build": "vite build --base=/project51-classroom-dashboard/ --outDir docs",
     "dev": "vite --host 127.0.0.1",
     "simulate": "node pipeline/publish.js",
-    "history": "node pipeline/history.js"
+    "history": "node pipeline/history.js",
+    "test:contract": "node --test pipeline/telemetry.test.js"
   },
   "license": "MIT",
   "type": "module",

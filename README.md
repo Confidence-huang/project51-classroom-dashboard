@@ -17,7 +17,7 @@
 - 已验证测试主题：`classroom/demo/ec200u/link_test`，消息 `type` 为 `link_test`。只更新链路测试区，不修改传感器读数。
 - 在同一主题从 EMQX 在线调试页发送 `type: manual_test` 时，网页会显示“手动测试已收到”，明确说明这只验证云端到网页，没有经过 EC200U 4G。
 - 待团队确认的真实主题默认写为 `classroom/room01/telemetry`，可在连接弹窗修改。只有这个主题中 `type` 为 `telemetry` 的 JSON 消息才会刷新测量值。
-- 暂定展示字段：`people_count`（人）、`temperature_c`（°C）、`humidity_pct`（%）、`light_lux`（lx）。这些字段是前后端联调草案，不是已验证的 STM32/K230 输出。
+- 展示字段：`temperature_c`（°C）、`humidity_pct`（%）、环境光照，以及可选的 `people_count`。板载 AHT20 和 PC5 光敏 ADC 已由 STM32 MicroPython 读到；未标定的光敏值使用 `light_raw_u16`，`light_lux` 填 `null`，网页标注 ADC 原码。K230 未接入时 `people_count` 为 `null`，网页显示“—”。
 - 页面本次会话的 MQTT 消息日志保留最近 20 条；接入历史 API 后另显示最近 5 条已存储快照。EMQX retained 仅保存主题最新一条，本机 SQLite 保存演示历史，公开网站的云端历史 API 尚未部署。
 
 ## 当前验证边界

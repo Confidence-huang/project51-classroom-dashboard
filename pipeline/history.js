@@ -22,15 +22,21 @@ const file = process.env.HISTORY_DB || join(here, 'telemetry.sqlite')
 const historyPort = Number(process.env.HISTORY_PORT || 8899) // 避开本机 8733–8832 的 Windows 保留端口段。
 mkdirSync(resolve(file, '..'), { recursive: true })
 const db = new DatabaseSync(file)
-db.exec(`CREATE TABLE IF NOT EXISTS telemetry (
+db.exec(`CREATE TABLE IF NOT EXISTS telemetry_v2 (
   device_id TEXT NOT NULL, seq INTEGER NOT NULL, room_id TEXT NOT NULL,
   captured_at TEXT NOT NULL, received_at TEXT NOT NULL, simulated INTEGER NOT NULL,
-  people_count INTEGER NOT NULL, temperature_c REAL NOT NULL,
-  humidity_pct REAL NOT NULL, light_lux REAL NOT NULL,
+  people_count INTEGER, temperature_c REAL NOT NULL,
+  humidity_pct REAL NOT NULL, light_lux REAL, light_raw_u16 INTEGER,
   PRIMARY KEY(device_id, seq)
 )`)
-const save = db.prepare(`INSERT OR IGNORE INTO telemetry VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-const recent = db.prepare(`SELECT * FROM telemetry ORDER BY received_at DESC, seq DESC LIMIT ?`)
+// 旧表限制人数和 lx 必填；新表允许尚未接入 K230 与未标定的光敏原码。
+// 复制旧数据但保留原表，已有本机历史不会被迁移操作删除。
+const legacy = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry'").get()
+if (legacy) db.exec(`INSERT OR IGNORE INTO telemetry_v2
+  SELECT device_id, seq, room_id, captured_at, received_at, simulated,
+    people_count, temperature_c, humidity_pct, light_lux, NULL FROM telemetry`)
+const save = db.prepare(`INSERT OR IGNORE INTO telemetry_v2 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+const recent = db.prepare(`SELECT * FROM telemetry_v2 ORDER BY received_at DESC, seq DESC LIMIT ?`)
 const client = mqtt.connect(url, {
   username: process.env.MQTT_USER,
   password: process.env.MQTT_PASSWORD,
@@ -55,7 +61,7 @@ client.on('message', (receivedTopic, bytes) => {
     const data = read(bytes)
     const result = save.run(data.device_id, data.seq, data.room_id, data.captured_at,
       new Date().toISOString(), Number(data.simulated), data.people_count,
-      data.temperature_c, data.humidity_pct, data.light_lux)
+      data.temperature_c, data.humidity_pct, data.light_lux, data.light_raw_u16 ?? null)
     console.log(result.changes ? 'STORED' : 'DUPLICATE', JSON.stringify({ seq: data.seq, device_id: data.device_id }))
   } catch (error) { console.error('INVALID_MESSAGE', error.message) }
 })

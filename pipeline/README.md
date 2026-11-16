@@ -26,6 +26,8 @@
 
 `captured_at` 是采样 UTC 时间，`seq` 是设备单调序号；四个单位依次为人、°C、%、lx。未来接入真传感器，保持字段不变，改 `source` 并将 `simulated` 设为 `false`。没有 CO₂ 字段。
 
+板载实测载荷使用 `source:"stm32_micropython_aht20_ldr"`、`simulated:false`、`people_count:null`、`light_lux:null` 和 `light_raw_u16`（0~65535）。AHT20 的温湿度是实测，光敏 ADC 也是实测原码，但未经 lux 标定；网页和 LCD 均显示 ADC 而不是虚假的 lx。历史服务会把旧 `telemetry` 表中的记录只读复制进 `telemetry_v2`，保留旧表，后续写入新表。
+
 ## 在本机启动
 
 需要 Node.js 26（历史服务用内置 `node:sqlite`）、PowerShell 7 和 `npm ci`。在本仓库目录运行：
