@@ -1,0 +1,9 @@
+# 正式设备只发布，历史服务只订阅，模拟发布器独立认证。
+user project51_device
+topic write classroom/room01/telemetry
+
+user project51_history
+topic read classroom/room01/telemetry
+
+user project51_test
+topic write classroom/room01/telemetry
