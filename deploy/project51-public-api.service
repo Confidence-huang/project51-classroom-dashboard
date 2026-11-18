@@ -15,6 +15,7 @@ Environment=HISTORY_DB=/var/lib/project51-classroom/emqx-public.sqlite
 Environment=HISTORY_API_ONLY=1
 Environment=CORS_ALLOW_ORIGIN=https://confidence-huang.github.io
 EnvironmentFile=/etc/project51-classroom/public-api.env
+EnvironmentFile=-/etc/project51-classroom/llm-agent.env
 ExecStart=/opt/project51-classroom/node-v26.13.1/bin/node /home/project51deploy/apps/classroom-history/pipeline/history.js
 Restart=on-failure
 RestartSec=3
