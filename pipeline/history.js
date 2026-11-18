@@ -11,6 +11,7 @@ import { extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { read } from './telemetry.js'                 // 云端消息只在入口解析一次。
 import { corsHeaders, parseAllowedOrigins } from './http-policy.js'
+import { createAgentHandler, handleAgentRoute } from './agent.js'
 
 const url = process.env.MQTT_URL
 const topic = process.env.MQTT_TOPIC || 'classroom/room01/telemetry'
@@ -51,6 +52,7 @@ const client = mqtt.connect(url, {
   protocolVersion: 4, clean: true, connectTimeout: 10000, reconnectPeriod: 3000,
 })
 let connected = false
+const agent = createAgentHandler({ db, getBrokerState: () => ({ connected, topic }) })
 
 // --- Broker 连接及订阅反馈 ---
 client.on('connect', () => client.subscribe(topic, { qos: 1 }, error => {
@@ -74,39 +76,48 @@ client.on('message', (receivedTopic, bytes) => {
 })
 
 // --- 本地网站同源读取历史；路径固定，避免任意读文件 ---
-createServer((request, response) => {
-  const path = new URL(request.url, 'http://localhost').pathname
-  if (path === '/api/telemetry') {
-    const cors = corsHeaders(request.headers.origin, allowedOrigins)
-    if (request.method === 'OPTIONS') {
-      response.writeHead(204, cors)
-      response.end()
-      return
-    }
-    if (request.method !== 'GET') {
-      response.writeHead(405, { ...cors, Allow: 'GET, OPTIONS' })
-      response.end('Method not allowed')
-      return
-    }
-    const rows = recent.all(20).map(row => ({ ...row, simulated: Boolean(row.simulated) }))
-    response.writeHead(200, { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
-    response.end(JSON.stringify({ broker_connected: connected, topic, latest: rows[0] || null, history: rows }))
-    return
-  }
-  if (apiOnly) {
-    response.writeHead(404)
-    response.end('Not found')
-    return
-  }
-  const prefix = '/project51-classroom-dashboard/'
-  const relative = path === '/' ? 'index.html' : path.startsWith(prefix) ? path.slice(prefix.length) || 'index.html' : null
-  const target = relative && resolve(site, relative)
-  if (!target || (target !== site && !target.startsWith(site + sep))) {
-    response.writeHead(404); response.end('Not found'); return
-  }
+createServer(async (request, response) => {
   try {
-    const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' }
-    response.writeHead(200, { 'Content-Type': (types[extname(target)] || 'application/octet-stream') + '; charset=utf-8' })
-    response.end(readFileSync(target))
-  } catch { response.writeHead(404); response.end('Not found') }
+    const path = new URL(request.url, 'http://localhost').pathname
+    if (path === '/api/telemetry') {
+      const cors = corsHeaders(request.headers.origin, allowedOrigins)
+      if (request.method === 'OPTIONS') {
+        response.writeHead(204, cors)
+        response.end()
+        return
+      }
+      if (request.method !== 'GET') {
+        response.writeHead(405, { ...cors, Allow: 'GET, OPTIONS' })
+        response.end('Method not allowed')
+        return
+      }
+      const rows = recent.all(20).map(row => ({ ...row, simulated: Boolean(row.simulated) }))
+      response.writeHead(200, { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      response.end(JSON.stringify({ broker_connected: connected, topic, latest: rows[0] || null, history: rows }))
+      return
+    }
+    if (await handleAgentRoute(request, response, { path, agent, allowedOrigins })) return
+    if (apiOnly) {
+      response.writeHead(404)
+      response.end('Not found')
+      return
+    }
+    const prefix = '/project51-classroom-dashboard/'
+    const relative = path === '/' ? 'index.html' : path.startsWith(prefix) ? path.slice(prefix.length) || 'index.html' : null
+    const target = relative && resolve(site, relative)
+    if (!target || (target !== site && !target.startsWith(site + sep))) {
+      response.writeHead(404); response.end('Not found'); return
+    }
+    try {
+      const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' }
+      response.writeHead(200, { 'Content-Type': (types[extname(target)] || 'application/octet-stream') + '; charset=utf-8' })
+      response.end(readFileSync(target))
+    } catch { response.writeHead(404); response.end('Not found') }
+  } catch (error) {
+    console.error('HTTP_HANDLER_ERROR', error.message)
+    if (!response.headersSent) {
+      response.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
+      response.end(JSON.stringify({ error: 'INTERNAL_ERROR', message: '服务内部异常' }))
+    }
+  }
 }).listen(historyPort, '127.0.0.1', () => console.log(`SITE_READY http://127.0.0.1:${historyPort}/`))
