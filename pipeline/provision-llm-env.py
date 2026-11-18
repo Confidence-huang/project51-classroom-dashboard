@@ -83,8 +83,15 @@ def main():
     api_key = None
 
     remote_cmd = (
-        "sudo install -d -m 750 -o root -g project51deploy /etc/project51-classroom && "
-        "sudo install -m 600 -o root -g root /dev/stdin /etc/project51-classroom/llm-agent.env && "
+        "sudo sh -c '"
+        "umask 077 && "
+        "install -d -m 750 -o root -g project51deploy /etc/project51-classroom && "
+        "tmp=$(mktemp /etc/project51-classroom/.llm-agent.env.XXXXXX) && "
+        "cat > \"$tmp\" && "
+        "chmod 600 \"$tmp\" && "
+        "chown root:root \"$tmp\" && "
+        "mv -f \"$tmp\" /etc/project51-classroom/llm-agent.env"
+        "' && "
         "sudo systemctl restart project51-public-api.service"
     )
     subprocess.run(
