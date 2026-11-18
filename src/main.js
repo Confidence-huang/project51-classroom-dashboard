@@ -181,8 +181,8 @@ elements['disconnect-button'].addEventListener('click', () => {
   showFreshness()
 })
 setInterval(showFreshness, 1_000)               // 超过 30 秒无遥测时明确提示数据过期。
-if (location.hostname === '127.0.0.1' && location.port === '8899') {
-  state.historyAPI = location.origin            // 本地一体化演示无需再填历史 API。
+if (location.hostname === '127.0.0.1' && ['8899', '18081'].includes(location.port)) {
+  state.historyAPI = location.origin            // 本地服务与 ECS 转发预览都经同源地址读取历史。
   refreshHistory()
 }
 setInterval(refreshHistory, 5_000)              // 每五秒读取已持久化的最新快照。
