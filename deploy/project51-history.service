@@ -1,0 +1,25 @@
+# ECS 本机历史服务：订阅回环 MQTT，并仅在 127.0.0.1:8899 提供只读 API。
+# 凭据由 ECS 上的 root-only EnvironmentFile 提供，不进入仓库或 unit 文件。
+[Unit]
+Description=Project 51 classroom telemetry history
+After=network.target mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+Type=simple
+User=project51deploy
+Group=project51deploy
+WorkingDirectory=/home/project51deploy/apps/classroom-history
+EnvironmentFile=/etc/project51-classroom/history.env
+ExecStart=/opt/project51-classroom/node-v26.13.1/bin/node /home/project51deploy/apps/classroom-history/pipeline/history.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+StateDirectory=project51-classroom
+StateDirectoryMode=0750
+
+[Install]
+WantedBy=multi-user.target
