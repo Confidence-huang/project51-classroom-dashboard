@@ -2,6 +2,18 @@
 import { test } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { read, sample } from './telemetry.js'
+import { corsHeaders, parseAllowedOrigins } from './http-policy.js'
+
+test('仅对白名单前端源返回只读 CORS 头', () => {
+  const allowed = parseAllowedOrigins('https://confidence-huang.github.io/, http://127.0.0.1:5173')
+  const matched = corsHeaders('https://confidence-huang.github.io', allowed)
+  assert.equal(matched['Access-Control-Allow-Origin'], 'https://confidence-huang.github.io')
+  assert.equal(matched['Access-Control-Allow-Methods'], 'GET, OPTIONS')
+  assert.equal(matched.Vary, 'Origin')
+  const rejected = corsHeaders('https://evil.example', allowed)
+  assert.equal(rejected['Access-Control-Allow-Origin'], undefined)
+  assert.equal(rejected.Vary, 'Origin')
+})
 
 test('保留旧模拟载荷的 lx 数值', () => {
   const data = sample(1, 'contract')

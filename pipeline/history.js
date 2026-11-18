@@ -10,6 +10,7 @@ import { readFileSync, mkdirSync } from 'node:fs'     // 读取已经构建的�
 import { extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { read } from './telemetry.js'                 // 云端消息只在入口解析一次。
+import { corsHeaders, parseAllowedOrigins } from './http-policy.js'
 
 const url = process.env.MQTT_URL
 const topic = process.env.MQTT_TOPIC || 'classroom/room01/telemetry'
@@ -24,6 +25,8 @@ const here = fileURLToPath(new URL('.', import.meta.url))
 const site = resolve(here, '../docs')
 const file = process.env.HISTORY_DB || join(here, 'telemetry.sqlite')
 const historyPort = Number(process.env.HISTORY_PORT || 8899) // 避开本机 8733–8832 的 Windows 保留端口段。
+const allowedOrigins = parseAllowedOrigins(process.env.CORS_ALLOW_ORIGIN)
+const apiOnly = process.env.HISTORY_API_ONLY === '1'
 mkdirSync(resolve(file, '..'), { recursive: true })
 const db = new DatabaseSync(file)
 db.exec(`CREATE TABLE IF NOT EXISTS telemetry_v2 (
@@ -74,9 +77,25 @@ client.on('message', (receivedTopic, bytes) => {
 createServer((request, response) => {
   const path = new URL(request.url, 'http://localhost').pathname
   if (path === '/api/telemetry') {
+    const cors = corsHeaders(request.headers.origin, allowedOrigins)
+    if (request.method === 'OPTIONS') {
+      response.writeHead(204, cors)
+      response.end()
+      return
+    }
+    if (request.method !== 'GET') {
+      response.writeHead(405, { ...cors, Allow: 'GET, OPTIONS' })
+      response.end('Method not allowed')
+      return
+    }
     const rows = recent.all(20).map(row => ({ ...row, simulated: Boolean(row.simulated) }))
-    response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+    response.writeHead(200, { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
     response.end(JSON.stringify({ broker_connected: connected, topic, latest: rows[0] || null, history: rows }))
+    return
+  }
+  if (apiOnly) {
+    response.writeHead(404)
+    response.end('Not found')
     return
   }
   const prefix = '/project51-classroom-dashboard/'
