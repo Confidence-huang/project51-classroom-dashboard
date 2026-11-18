@@ -59,6 +59,33 @@
           <article class="reading"><div class="reading-top"><span>环境光照</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span id="light-unit">lx</span></div><p id="light-source">计划由环境传感器提供</p></article>
         </section>
 
+        <section class="panel agent-panel" aria-labelledby="agent-title">
+          <div class="panel-head">
+            <div><p class="eyebrow">AI ASSISTANT · TOOL-CALLING</p><h2 id="agent-title">AI 教室助手</h2></div>
+            <span id="agent-pill" class="pill pill-idle">检测中</span>
+          </div>
+          <p id="agent-note" class="panel-note">基于服务端真实 SQLite 遥测数据回答；严禁编造未接入的人数或 lx 照度，所有节能建议均为只读参考。</p>
+          <div id="agent-presets" class="agent-presets" role="group" aria-label="快捷诊断">
+            <button class="chip-button" type="button" data-preset="diagnose">当前教室体检</button>
+            <button class="chip-button" type="button" data-preset="trend">近 1 小时趋势</button>
+            <button class="chip-button" type="button" data-preset="energy">节能建议（只读）</button>
+            <button class="chip-button" type="button" data-preset="health">链路与传感器自检</button>
+          </div>
+          <form id="agent-form" class="agent-form" autocomplete="off">
+            <input id="agent-input" name="question" type="text" maxlength="300" placeholder="输入问题，例如：当前教室温湿度舒适吗？近半小时有什么变化？" aria-label="向 AI 教室助手提问" />
+            <button id="agent-submit" class="button button-primary agent-submit" type="submit">提问</button>
+          </form>
+          <div id="agent-output" class="agent-output" aria-live="polite" hidden>
+            <div class="agent-answer-head"><strong id="agent-question-echo"></strong><small id="agent-meta"></small></div>
+            <div id="agent-answer" class="agent-answer"></div>
+            <div id="agent-evidence" class="agent-evidence" hidden>
+              <div class="agent-evidence-row"><span class="evidence-label">调用工具</span><div id="agent-tools" class="evidence-tags"></div></div>
+              <div class="agent-evidence-row"><span class="evidence-label">引用样本</span><div id="agent-seqs" class="evidence-tags"></div></div>
+              <div id="agent-boundary" class="agent-boundary"></div>
+            </div>
+          </div>
+        </section>
+
         <section class="lower-grid">
           <article class="panel link-panel"><div class="panel-head"><div><p class="eyebrow">LINK CHECK</p><h2>4G 链路状态</h2></div><span class="signal-icon" aria-hidden="true">↗</span></div><p id="link-summary" class="link-summary">等待 EC200U 上报消息</p><p id="link-note" class="panel-note">测试主题已验证：<code>classroom/demo/ec200u/link_test</code></p><small id="link-updated">等待本次连接的消息</small></article>
           <article class="panel message-panel"><div class="panel-head"><div><p class="eyebrow">MESSAGE LOG</p><h2>最近收到的消息</h2></div><span id="message-count" class="count">0 条</span></div><ul id="message-list" class="message-list"><li class="empty-message">连接后，新消息会显示在这里。</li></ul></article>
