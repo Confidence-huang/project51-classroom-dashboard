@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#e9f1ee" />
     <meta name="description" content="移远杯智慧教室 4G 实时数据看板" />
     <title>智慧教室 · 实时看板</title>
-    <script type="module" crossorigin src="/project51-classroom-dashboard/assets/index-BhOOhsTS.js"></script>
-    <link rel="stylesheet" crossorigin href="/project51-classroom-dashboard/assets/index-j57oKPmZ.css">
+    <script type="module" crossorigin src="/project51-classroom-dashboard/assets/index-DZS8LROf.js"></script>
+    <link rel="stylesheet" crossorigin href="/project51-classroom-dashboard/assets/index-an7O5ABT.css">
   </head>
   <body>
     <div class="page-shell">
@@ -59,6 +59,33 @@
           <article class="reading"><div class="reading-top"><span>温度</span><span class="reading-symbol">°</span></div><div class="reading-value"><strong id="temperature-c">—</strong><span>°C</span></div><p id="temperature-source">计划由环境传感器提供</p></article>
           <article class="reading"><div class="reading-top"><span>相对湿度</span><span class="reading-symbol">% RH</span></div><div class="reading-value"><strong id="humidity-pct">—</strong><span>%</span></div><p id="humidity-source">计划由环境传感器提供</p></article>
           <article class="reading"><div class="reading-top"><span>环境光照</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span id="light-unit">lx</span></div><p id="light-source">计划由环境传感器提供</p></article>
+        </section>
+
+        <section class="panel agent-panel" aria-labelledby="agent-title">
+          <div class="panel-head">
+            <div><p class="eyebrow">AI ASSISTANT · TOOL-CALLING</p><h2 id="agent-title">AI 教室助手</h2></div>
+            <span id="agent-pill" class="pill pill-idle">检测中</span>
+          </div>
+          <p id="agent-note" class="panel-note">基于服务端真实 SQLite 遥测数据回答；严禁编造未接入的人数或 lx 照度，所有节能建议均为只读参考。</p>
+          <div id="agent-presets" class="agent-presets" role="group" aria-label="快捷诊断">
+            <button class="chip-button" type="button" data-preset="diagnose">当前教室体检</button>
+            <button class="chip-button" type="button" data-preset="trend">近 1 小时趋势</button>
+            <button class="chip-button" type="button" data-preset="energy">节能建议（只读）</button>
+            <button class="chip-button" type="button" data-preset="health">链路与传感器自检</button>
+          </div>
+          <form id="agent-form" class="agent-form" autocomplete="off">
+            <input id="agent-input" name="question" type="text" maxlength="300" placeholder="输入问题，例如：当前教室温湿度舒适吗？近半小时有什么变化？" aria-label="向 AI 教室助手提问" />
+            <button id="agent-submit" class="button button-primary agent-submit" type="submit">提问</button>
+          </form>
+          <div id="agent-output" class="agent-output" aria-live="polite" hidden>
+            <div class="agent-answer-head"><strong id="agent-question-echo"></strong><small id="agent-meta"></small></div>
+            <div id="agent-answer" class="agent-answer"></div>
+            <div id="agent-evidence" class="agent-evidence" hidden>
+              <div class="agent-evidence-row"><span class="evidence-label">调用工具</span><div id="agent-tools" class="evidence-tags"></div></div>
+              <div class="agent-evidence-row"><span class="evidence-label">引用样本</span><div id="agent-seqs" class="evidence-tags"></div></div>
+              <div id="agent-boundary" class="agent-boundary"></div>
+            </div>
+          </div>
         </section>
 
         <section class="lower-grid">
