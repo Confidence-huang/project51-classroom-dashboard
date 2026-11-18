@@ -8,11 +8,12 @@ import './style.css'                 // 看板在电脑和手机上共用同一�
 
 // --- 页面数据 ---
 const elements = Object.fromEntries( // 所有可变区域集中列出，便于队友找显示位置。
-  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','light-unit','people-source','temperature-source','humidity-source','light-source','link-summary','link-updated','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
+  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','light-unit','people-source','temperature-source','humidity-source','light-source','link-summary','link-note','link-updated','flow-broker','flow-browser','receipt-label','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
     .map(id => [id, document.getElementById(id)])
 )
 
 const linkTopic = 'classroom/demo/ec200u/link_test'  // 已经由 EC200U 和在线调试页实测的主题。
+const ecsSite = import.meta.env.MODE === 'ecs'       // ECS 构建使用同源历史 API；Pages 构建继续用 EMQX WSS。
 const readings = {                            // 约定草案；队长确认数据字段后只改这里。
   people_count: 'people-count',                // K230 识别出的当前人数。
   temperature_c: 'temperature-c',              // 温度，单位摄氏度。
@@ -87,6 +88,9 @@ async function refreshHistory() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const data = await response.json()
     state.historyConnected = data.broker_connected
+    if (ecsSite) showConnection(data.broker_connected ? '接收服务已连接' : '接收服务断开',
+      data.broker_connected ? 'ECS 正在订阅设备主题，等待新的上报。' : 'ECS 历史服务仍可读，正在等待 MQTT 重连。',
+      data.broker_connected ? 'live' : 'warn')
     elements['history-count'].textContent = `${data.history.length} 条`
     elements['history-status'].textContent = `订阅主题：${data.topic} · ${data.broker_connected ? '云端已连接' : '云端暂时断开'}`
     elements['history-list'].replaceChildren()
@@ -100,9 +104,18 @@ async function refreshHistory() {
       elements['history-list'].append(item)     // textContent 路径，不执行云端载荷中的 HTML。
     }
     if (data.latest && Date.parse(data.latest.captured_at) > state.lastTelemetry) showTelemetry(data.latest, data.latest.received_at)
+    if (ecsSite && data.latest) {
+      elements['latest-message'].textContent = `${data.latest.simulated ? '模拟样本' : '设备遥测'} #${data.latest.seq}`
+      elements['latest-message-time'].textContent = `服务器入库 ${new Date(data.latest.received_at).toLocaleString('zh-CN')}`
+      if (!data.latest.simulated) {
+        elements['link-summary'].textContent = '已收到非模拟遥测，待与设备日志核对 4G 链路'
+        elements['link-updated'].textContent = elements['latest-message-time'].textContent
+      }
+    }
     showFreshness()
   } catch (error) {
     state.historyConnected = false
+    if (ecsSite) showConnection('接收服务不可达', '无法读取 ECS 历史 API。', 'error')
     elements['history-status'].textContent = `历史服务不可达：${error.message}`
   }
 }
@@ -181,7 +194,17 @@ elements['disconnect-button'].addEventListener('click', () => {
   showFreshness()
 })
 setInterval(showFreshness, 1_000)               // 超过 30 秒无遥测时明确提示数据过期。
-if (location.hostname === '127.0.0.1' && ['8899', '18081'].includes(location.port)) {
+if (ecsSite) {
+  elements['settings-button'].hidden = true         // ECS 服务端持有 MQTT 密码，浏览器不再收集账号。
+  elements['flow-broker'].textContent = '队长 ECS · 自建 MQTT'
+  elements['flow-browser'].textContent = '当前网页 · 历史 API 展示'
+  elements['receipt-label'].textContent = '服务器接收的最近消息'
+  elements['link-summary'].textContent = '等待 EC200U 切换到队长 ECS'
+  elements['link-note'].textContent = '当前仅模拟上报贯通；真机切换后再核对 LCD 与网页。'
+  elements['message-list'].firstElementChild.textContent = 'ECS 接收的消息与去重结果显示在下方历史列表。'
+  state.historyAPI = location.origin
+  refreshHistory()
+} else if (location.hostname === '127.0.0.1' && location.port === '8899') {
   state.historyAPI = location.origin            // 本地服务与 ECS 转发预览都经同源地址读取历史。
   refreshHistory()
 }

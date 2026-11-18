@@ -36,13 +36,13 @@
           <span class="flow-arrow">→</span>
           <span class="flow-step">STM32 + EC200U <small>4G 上报</small></span>
           <span class="flow-arrow">→</span>
-          <span class="flow-step">EMQX <small>MQTT 转发</small></span>
+          <span id="flow-broker" class="flow-step">EMQX <small>MQTT 转发</small></span>
           <span class="flow-arrow">→</span>
-          <span class="flow-step">当前网页 <small>实时订阅</small></span>
+          <span id="flow-browser" class="flow-step">当前网页 <small>实时订阅</small></span>
         </section>
 
         <section class="receipt" aria-live="polite" aria-label="网页消息接收状态">
-          <span class="receipt-label">本次页面收到的消息</span>
+          <span id="receipt-label" class="receipt-label">本次页面收到的消息</span>
           <strong id="latest-message">尚未收到新消息</strong>
           <small id="latest-message-time">连接后发布一条新消息即可验证</small>
         </section>
@@ -60,7 +60,7 @@
         </section>
 
         <section class="lower-grid">
-          <article class="panel link-panel"><div class="panel-head"><div><p class="eyebrow">LINK CHECK</p><h2>4G 链路状态</h2></div><span class="signal-icon" aria-hidden="true">↗</span></div><p id="link-summary" class="link-summary">等待 EC200U 上报消息</p><p class="panel-note">测试主题已验证：<code>classroom/demo/ec200u/link_test</code></p><small id="link-updated">等待本次连接的消息</small></article>
+          <article class="panel link-panel"><div class="panel-head"><div><p class="eyebrow">LINK CHECK</p><h2>4G 链路状态</h2></div><span class="signal-icon" aria-hidden="true">↗</span></div><p id="link-summary" class="link-summary">等待 EC200U 上报消息</p><p id="link-note" class="panel-note">测试主题已验证：<code>classroom/demo/ec200u/link_test</code></p><small id="link-updated">等待本次连接的消息</small></article>
           <article class="panel message-panel"><div class="panel-head"><div><p class="eyebrow">MESSAGE LOG</p><h2>最近收到的消息</h2></div><span id="message-count" class="count">0 条</span></div><ul id="message-list" class="message-list"><li class="empty-message">连接后，新消息会显示在这里。</li></ul></article>
         </section>
 
