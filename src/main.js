@@ -13,7 +13,18 @@ const elements = Object.fromEntries( // 所有可变区域集中列出，便于�
 )
 
 const linkTopic = 'classroom/demo/ec200u/link_test'  // 已经由 EC200U 和在线调试页实测的主题。
-const ecsSite = import.meta.env.MODE === 'ecs'       // ECS 构建使用同源历史 API；Pages 构建继续用 EMQX WSS。
+const ecsSite = import.meta.env.MODE === 'ecs'       // ECS 构建使用同源历史 API；Pages 构建优先使用只读 HTTPS API。
+function resolvePublicApiUrl() {
+  const query = new URLSearchParams(location.search).get('api')?.trim()
+  const raw = query || (import.meta.env.VITE_PUBLIC_API_URL || '').trim()
+  if (!raw) return ''
+  const normalized = raw.replace(/\/$/, '')
+  if (normalized.startsWith('https://')) return normalized
+  if (location.hostname === '127.0.0.1' && normalized.startsWith('http://127.0.0.1')) return normalized
+  return ''
+}
+const publicApiUrl = ecsSite ? '' : resolvePublicApiUrl()
+const publicApiMode = !ecsSite && Boolean(publicApiUrl)
 const readings = {                            // 约定草案；队长确认数据字段后只改这里。
   people_count: 'people-count',                // K230 识别出的当前人数。
   temperature_c: 'temperature-c',              // 温度，单位摄氏度。
@@ -88,9 +99,19 @@ async function refreshHistory() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const data = await response.json()
     state.historyConnected = data.broker_connected
-    if (ecsSite) showConnection(data.broker_connected ? '接收服务已连接' : '接收服务断开',
-      data.broker_connected ? 'ECS 正在订阅设备主题，等待新的上报。' : 'ECS 历史服务仍可读，正在等待 MQTT 重连。',
-      data.broker_connected ? 'live' : 'warn')
+    const apiDriven = ecsSite || (publicApiMode && !state.client)
+    if (apiDriven) {
+      const okLabel = ecsSite ? '接收服务已连接' : '免密已连接'
+      const okDetail = ecsSite
+        ? 'ECS 正在订阅设备主题，等待新的上报。'
+        : '只读历史 API 正在订阅 EMQX 设备主题，页面每 5 秒自动刷新。'
+      const warnDetail = ecsSite
+        ? 'ECS 历史服务仍可读，正在等待 MQTT 重连。'
+        : '只读历史 API 仍可读，正在等待 EMQX 重连。'
+      showConnection(data.broker_connected ? okLabel : '接收服务断开',
+        data.broker_connected ? okDetail : warnDetail,
+        data.broker_connected ? 'live' : 'warn')
+    }
     elements['history-count'].textContent = `${data.history.length} 条`
     elements['history-status'].textContent = `订阅主题：${data.topic} · ${data.broker_connected ? '云端已连接' : '云端暂时断开'}`
     elements['history-list'].replaceChildren()
@@ -104,11 +125,13 @@ async function refreshHistory() {
       elements['history-list'].append(item)     // textContent 路径，不执行云端载荷中的 HTML。
     }
     if (data.latest && Date.parse(data.latest.captured_at) > state.lastTelemetry) showTelemetry(data.latest, data.latest.received_at)
-    if (ecsSite && data.latest) {
+    if (apiDriven && data.latest) {
       elements['latest-message'].textContent = `${data.latest.simulated ? '模拟样本' : '设备遥测'} #${data.latest.seq}`
-      elements['latest-message-time'].textContent = `服务器入库 ${new Date(data.latest.received_at).toLocaleString('zh-CN')}`
+      elements['latest-message-time'].textContent = `云端入库 ${new Date(data.latest.received_at).toLocaleString('zh-CN')}`
       if (!data.latest.simulated) {
-        elements['link-summary'].textContent = '已收到非模拟遥测，待与设备日志核对 4G 链路'
+        elements['link-summary'].textContent = ecsSite
+          ? '已收到非模拟遥测，待与设备日志核对 4G 链路'
+          : `已收到板端实测遥测 #${data.latest.seq} · 免密只读展示中`
         elements['link-updated'].textContent = elements['latest-message-time'].textContent
       }
     }
@@ -116,6 +139,7 @@ async function refreshHistory() {
   } catch (error) {
     state.historyConnected = false
     if (ecsSite) showConnection('接收服务不可达', '无法读取 ECS 历史 API。', 'error')
+    else if (publicApiMode && !state.client) showConnection('接收服务不可达', '无法读取只读 HTTPS 历史 API，可稍后刷新或使用手动 WSS 调试。', 'error')
     elements['history-status'].textContent = `历史服务不可达：${error.message}`
   }
 }
@@ -203,6 +227,18 @@ if (ecsSite) {
   elements['link-note'].textContent = '当前仅模拟上报贯通；真机切换后再核对 LCD 与网页。'
   elements['message-list'].firstElementChild.textContent = 'ECS 接收的消息与去重结果显示在下方历史列表。'
   state.historyAPI = location.origin
+  refreshHistory()
+} else if (publicApiMode) {
+  elements['settings-button'].textContent = '手动 WSS 调试 ↗'
+  elements['flow-broker'].textContent = 'EMQX + 只读 API'
+  elements['flow-browser'].textContent = '当前网页 · 免密自动刷新'
+  elements['receipt-label'].textContent = '云端接收的最新消息'
+  elements['link-summary'].textContent = '正在读取板端最新 4G 实测数据'
+  elements['link-note'].textContent = '免密模式经只读 HTTPS API 拉取数据，网页源码不含 MQTT 密码。'
+  elements['message-list'].firstElementChild.textContent = '免密只读模式：最新实测与历史由只读 API 自动刷新，无需输入密码。'
+  elements['history-api-url'].value = publicApiUrl
+  state.historyAPI = publicApiUrl
+  showConnection('连接中', '正在读取只读 HTTPS 历史 API。', 'warn')
   refreshHistory()
 } else if (location.hostname === '127.0.0.1' && location.port === '8899') {
   state.historyAPI = location.origin            // 本地服务与 ECS 转发预览都经同源地址读取历史。
