@@ -1,7 +1,7 @@
-# 为仅回环监听的 127.0.0.1:8900 只读 API 提供公信 HTTPS 隧道，不动现有 80 端口或 /lamp/。
-# 注：Quick Tunnel 域名在服务重启后会变化；长期固定域名可升级为 Cloudflare Named Tunnel 或备案 443。
+# 为仅回环监听的 127.0.0.1:8900 只读 API 提供永久固定域名的公信 HTTPS 隧道，不动现有 80 端口或 /lamp/。
+# 隧道凭据与路由配置保存在 ECS 的 /etc/project51-classroom/，不进入仓库。
 [Unit]
-Description=Project 51 public HTTPS tunnel for read-only telemetry API
+Description=Project 51 public HTTPS named tunnel for read-only telemetry API
 After=network-online.target
 Wants=network-online.target
 
@@ -9,7 +9,7 @@ Wants=network-online.target
 Type=simple
 User=project51deploy
 Group=project51deploy
-ExecStart=/opt/project51-classroom/cloudflared tunnel --no-autoupdate --protocol http2 --url http://127.0.0.1:8900
+ExecStart=/opt/project51-classroom/cloudflared tunnel --no-autoupdate --config /etc/project51-classroom/cloudflared-config.yml run
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
