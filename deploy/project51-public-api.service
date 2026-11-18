@@ -1,0 +1,29 @@
+# 公开免密只读 API 服务：订阅现有 EMQX Cloud TLS 8883，落独立 SQLite，仅监听 127.0.0.1:8900。
+# 凭据由 ECS 上 root-only EnvironmentFile 提供，不进入仓库、网页或 unit 文件。
+[Unit]
+Description=Project 51 public read-only telemetry API (EMQX)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=project51deploy
+Group=project51deploy
+WorkingDirectory=/home/project51deploy/apps/classroom-history
+Environment=HISTORY_PORT=8900
+Environment=HISTORY_DB=/var/lib/project51-classroom/emqx-public.sqlite
+Environment=HISTORY_API_ONLY=1
+Environment=CORS_ALLOW_ORIGIN=https://confidence-huang.github.io
+EnvironmentFile=/etc/project51-classroom/public-api.env
+ExecStart=/opt/project51-classroom/node-v26.13.1/bin/node /home/project51deploy/apps/classroom-history/pipeline/history.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+StateDirectory=project51-classroom
+StateDirectoryMode=0750
+
+[Install]
+WantedBy=multi-user.target
