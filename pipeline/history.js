@@ -14,7 +14,11 @@ import { read } from './telemetry.js'                 // 云端消息只在入�
 const url = process.env.MQTT_URL
 const topic = process.env.MQTT_TOPIC || 'classroom/room01/telemetry'
 if (!url) throw new Error('需要 MQTT_URL')
-if (!url.startsWith('mqtts://') && process.env.ALLOW_PLAINTEXT_TEST !== '1') throw new Error('正式连接必须使用 mqtts://')
+// ECS 内的历史服务只经回环地址访问本机 Broker；跨主机连接仍必须使用 TLS。
+const localBroker = url === 'mqtt://127.0.0.1:1883'
+if (!url.startsWith('mqtts://') && !localBroker && process.env.ALLOW_PLAINTEXT_TEST !== '1') {
+  throw new Error('正式连接必须使用 mqtts://，本机 Broker 只允许 mqtt://127.0.0.1:1883')
+}
 
 const here = fileURLToPath(new URL('.', import.meta.url))
 const site = resolve(here, '../docs')
