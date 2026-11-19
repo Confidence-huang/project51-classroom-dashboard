@@ -12,7 +12,118 @@
 .lower-grid{display:grid;grid-template-columns:1fr 1.25fr;gap:15px;margin:15px 0 22px}.panel{background:#f9fcfa;border:1px solid #d0e0d7;border-radius:19px;padding:25px;min-height:250px}.panel h2{font-size:21px}.link-panel{background:#e0efe6}.signal-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#c9e4d4;font-size:22px;color:#237856}.link-summary{font-size:17px;font-weight:800;margin:30px 0 10px}.panel-note{font-size:11px;color:#648675;line-height:1.7;overflow-wrap:anywhere}.panel-note code{font-family:Consolas,monospace}.link-panel>small{display:block;color:#769787;font-size:11px;margin-top:12px}.count{font-size:11px;color:#678377}.message-list{list-style:none;margin:20px 0 0;padding:0;max-height:220px;overflow:auto}.message-list li{border-top:1px solid #e1ebe5;padding:11px 0;display:grid;grid-template-columns:70px minmax(0,1fr);gap:8px;font-size:11px}.message-list time{font-family:Consolas,monospace;color:#81a092}.message-list strong{font-weight:700;color:#215e4e}.message-list code{display:block;color:#6a897d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}.message-list .empty-message{display:block;color:#8aa098}.data-note{color:#799186;font-size:11px;line-height:1.6;margin:22px 0 50px}footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #c9dcd4;padding:20px 0 35px;color:#839b8d;font-size:11px}
 .settings-dialog{border:1px solid #b8d3c3;background:#f9fcfa;border-radius:22px;padding:0;width:min(460px,calc(100vw - 26px));box-shadow:0 26px 90px #143b3560;color:#173b35}.settings-dialog::backdrop{background:#153f38a8;backdrop-filter:blur(4px)}.settings-dialog form{padding:26px}.dialog-head{display:flex;justify-content:space-between;align-items:start}.dialog-head h2{margin:4px 0 0;font-size:27px}.close-button{border:0;background:none;color:#638477;font-size:30px;line-height:1}.dialog-copy{font-size:12px;color:#658277;line-height:1.7;margin:18px 0}.settings-dialog label{display:block;font-size:12px;font-weight:800;margin:12px 0}.settings-dialog label small{color:#8fa69b;font-weight:500}.settings-dialog input{display:block;margin-top:7px;padding:11px 12px;border:1px solid #cbded3;border-radius:9px;background:#fff;width:100%;font-size:13px;color:#173b35}.form-message{min-height:18px;font-size:12px;color:#ae5751}
 .history-panel{min-height:140px;margin-top:15px}.history-list{list-style:none;padding:0;margin:18px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.history-list li{border:1px solid #dce9e1;border-radius:10px;padding:10px 12px;font:12px/1.6 Consolas,"Microsoft YaHei",monospace;overflow-wrap:anywhere}.history-list time{display:block;color:#789488;font-size:10px}
-.agent-panel{min-height:170px;margin-top:15px}.agent-presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.chip-button{border:1px solid #bfd9cc;background:#e6f2ec;color:#175a49;border-radius:99px;padding:8px 14px;font-size:12px;font-weight:700;transition:background .15s,color .15s,border-color .15s}.chip-button:hover:not(:disabled){background:#176a56;color:#fff;border-color:#176a56}.chip-button:disabled,.agent-submit:disabled{opacity:.52;cursor:not-allowed}.agent-form{display:flex;gap:10px;margin-top:14px}.agent-form input{flex:1;min-width:0;padding:11px 14px;border:1px solid #c6dbd0;border-radius:11px;background:#fff;font-size:13px;color:#173b35}.agent-form input:disabled{background:#f1f6f3;color:#7b948a}.agent-submit{width:auto;min-width:88px;justify-content:center;flex-shrink:0}.agent-output{margin-top:16px;padding:16px 18px;border-radius:14px;background:#eef6f2;border:1px solid #c9dfd3}.agent-answer-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}.agent-answer-head strong{font-size:13px;color:#175a49}.agent-answer-head small{font:11px/1.4 Consolas,"Microsoft YaHei",monospace;color:#6b8a7d}.agent-answer p{margin:8px 0 0;font-size:13.5px;line-height:1.75;color:#173b35;white-space:pre-wrap;overflow-wrap:anywhere}.agent-answer p:first-child{margin-top:0}.agent-evidence{margin-top:14px;padding-top:12px;border-top:1px dashed #bed6ca;display:grid;gap:8px}.agent-evidence-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}.evidence-label{font-size:11px;font-weight:800;color:#5c7d70;padding-top:3px;min-width:52px}.evidence-tags{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}.evidence-tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;background:#fff;border:1px solid #c6dbd0;font:11px/1.4 Consolas,"Microsoft YaHei",monospace;color:#1f5d4c;overflow-wrap:anywhere}.evidence-tag-seq{background:#dcf4e6;border-color:#a8dbbf;color:#0e674c;font-weight:700}.agent-boundary{font-size:11px;color:#5a7a6e;line-height:1.6}
+
+/* 安大+ 风格：看板入口大胶囊卡片 */
+.anda-entry-section{margin-top:18px}
+.anda-entry-card{width:100%;border:1px solid #c9ddd2;background:#f9fcfa;border-radius:22px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left;box-shadow:0 6px 24px #174d350c;transition:transform .2s cubic-bezier(.2,0,0,1),box-shadow .2s,border-color .2s}
+.anda-entry-card:hover{transform:translateY(-2px);box-shadow:0 12px 36px #174d3515;border-color:#a5cfbc}
+.anda-entry-left{display:flex;align-items:center;gap:18px;min-width:0}
+.anda-entry-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:16px;background:#e1f4eb;color:#12634f;font-size:24px;flex-shrink:0}
+.anda-entry-text{min-width:0}
+.anda-entry-title{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:850;color:#173b35;letter-spacing:-.02em}
+.anda-model-tag{font:700 11px/1 Consolas,"Microsoft YaHei",monospace;padding:4px 9px;border-radius:99px;background:#dcf4e6;color:#0f6d50;letter-spacing:0}
+.anda-entry-sub{font-size:13px;color:#608074;margin:5px 0 0;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.anda-entry-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.anda-entry-arrow{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#eaf3ee;color:#3e7d69;font-size:18px;font-weight:700;transition:transform .18s,background .18s}
+.anda-entry-card:hover .anda-entry-arrow{transform:translateX(3px);background:#176a56;color:#fff}
+
+/* 安大+ 沉浸式全屏抽屉视图 */
+.anda-drawer{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center}
+.anda-drawer[hidden]{display:none!important}
+.anda-drawer-backdrop{position:absolute;inset:0;background:#0d262173;backdrop-filter:blur(6px);animation:fadeIn .2s ease-out}
+.anda-drawer-window{position:relative;z-index:1;width:min(940px,calc(100vw - 32px));height:min(860px,calc(100vh - 40px));background:#f6f9f7;border:1px solid #c2dbcf;border-radius:24px;box-shadow:0 30px 100px #0b241e55;display:flex;flex-direction:column;overflow:hidden;animation:popIn .25s cubic-bezier(.16,1,.3,1)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* 抽屉顶部 Bar */
+.anda-topbar{height:66px;padding:0 24px;background:#fff;border-bottom:1px solid #dbe8e1;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-shrink:0}
+.anda-topbar-title{margin:0;font-size:17px;font-weight:800;color:#173b35;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+.anda-topbar-title span{font:700 13px Consolas,"Microsoft YaHei",monospace;color:#188168;background:#e5f6ee;padding:3px 9px;border-radius:99px}
+.anda-topbar-btn{width:40px;height:40px;border-radius:12px;border:1px solid transparent;background:none;color:#4f7365;font-size:20px;display:grid;place-items:center;transition:background .15s,color .15s,border-color .15s}
+.anda-topbar-btn:hover{background:#edf6f1;color:#173b35;border-color:#cfe2d8}
+.anda-topbar-actions{display:flex;gap:8px}
+
+/* 对话主视图 */
+.anda-view{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
+.anda-view[hidden]{display:none!important}
+.anda-chat-body{flex:1;overflow-y:auto;padding:28px 32px;display:flex;flex-direction:column;gap:20px}
+
+/* 欢迎空态（安大+ 图 2 复刻） */
+.anda-welcome-screen{margin:auto 0;padding:20px 0}
+.anda-welcome-head h3{font-size:32px;font-weight:850;color:#173b35;margin:0 0 8px;letter-spacing:-.04em}
+.anda-welcome-head p{font-size:14px;color:#67897c;margin:0 0 28px;line-height:1.6}
+.anda-suggest-grid{display:grid;grid-template-columns:1fr;gap:12px;max-width:760px}
+.anda-suggest-card{width:100%;background:#fff;border:1px solid #d4e5dc;border-radius:16px;padding:17px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:14px;font-weight:700;color:#1f4f43;text-align:left;box-shadow:0 4px 16px #134d3509;transition:all .18s ease}
+.anda-suggest-card:hover{transform:translateY(-2px);background:#fbfefc;border-color:#176a56;box-shadow:0 8px 24px #176a5615;color:#125b48}
+.anda-suggest-arrow{color:#94b3a6;font-size:17px;font-weight:800;transition:transform .15s,color .15s}
+.anda-suggest-card:hover .anda-suggest-arrow{transform:translateX(3px);color:#176a56}
+
+/* 消息流 */
+.anda-messages-list{display:flex;flex-direction:column;gap:20px}
+.anda-msg{display:flex;flex-direction:column;max-width:88%;animation:fadeIn .2s ease-out}
+.anda-msg-user{align-self:flex-end}
+.anda-msg-user-bubble{background:#176a56;color:#fff;border-radius:20px 20px 4px 20px;padding:13px 19px;font-size:14px;line-height:1.6;font-weight:600;box-shadow:0 6px 18px #176a5628;overflow-wrap:anywhere}
+.anda-msg-ai{align-self:flex-start}
+.anda-msg-ai-card{background:#fff;border:1px solid #d3e5dc;border-radius:20px 20px 20px 4px;padding:20px 24px;box-shadow:0 6px 24px #174d350c;color:#173b35}
+.anda-msg-ai-card p{margin:10px 0 0;font-size:14px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
+.anda-msg-ai-card p:first-child{margin-top:0}
+.anda-evidence-box{margin-top:16px;padding-top:14px;border-top:1px dashed #d5e6de;display:grid;gap:9px}
+.anda-evidence-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.anda-evidence-label{font-size:11px;font-weight:800;color:#608576;padding-top:3px;min-width:54px}
+.anda-evidence-tags{display:flex;flex-wrap:wrap;gap:6px;flex:1}
+.anda-tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;background:#f2f7f4;border:1px solid #d0e3d9;font:11px/1.4 Consolas,"Microsoft YaHei",monospace;color:#1c5e4c}
+.anda-tag-seq{background:#dcf4e6;border-color:#9dd7b8;color:#0b664b;font-weight:700}
+.anda-boundary-text{font-size:11px;color:#64897a;line-height:1.6}
+.anda-msg-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;font:11px/1.4 Consolas,"Microsoft YaHei",monospace;color:#85a395}
+
+/* 底部吸底输入栏（安大+ 图 2 复刻） */
+.anda-chat-footer{padding:16px 24px 20px;background:#fff;border-top:1px solid #dbe8e1;flex-shrink:0}
+.anda-input-bar{display:flex;align-items:center;gap:10px;background:#f3f7f5;border:1px solid #c9ded3;border-radius:99px;padding:6px 8px 6px 20px;box-shadow:inset 0 2px 6px #00000006;transition:border-color .15s,box-shadow .15s}
+.anda-input-bar:focus-within{border-color:#176a56;background:#fff;box-shadow:0 0 0 3px #176a5618}
+.anda-input-bar input{flex:1;border:0;background:none;outline:none;font-size:14px;color:#173b35;padding:8px 0}
+.anda-input-bar input::placeholder{color:#8da59a}
+.anda-send-btn{border:0;border-radius:99px;background:#176a56;color:#fff;padding:10px 22px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;gap:7px;transition:background .15s,transform .15s;flex-shrink:0}
+.anda-send-btn:hover:not(:disabled){background:#0f5544;transform:translateY(-1px)}
+.anda-send-btn:disabled{opacity:.55;cursor:not-allowed}
+.anda-send-arrow{font-size:13px}
+
+/* 模型配置视图（安大+ 图 3 & 图 4 复刻） */
+.anda-config-body{flex:1;overflow-y:auto;padding:28px 32px;display:flex;flex-direction:column;gap:22px}
+.anda-config-section{display:flex;flex-direction:column;gap:10px}
+.anda-config-label{font-size:13px;font-weight:800;color:#507667}
+.anda-platform-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.anda-tab-pill{border:1px solid #cfe0d7;background:#fff;color:#27594b;border-radius:99px;padding:9px 18px;font-size:13px;font-weight:750;transition:all .15s;box-shadow:0 2px 6px #154e3608}
+.anda-tab-pill:hover{background:#edf6f1;border-color:#b5d5c5}
+.anda-tab-pill.active{background:#176a56;color:#fff;border-color:#176a56;box-shadow:0 4px 14px #176a5630}
+
+.anda-config-card{background:#fff;border:1px solid #d4e5dc;border-radius:20px;padding:24px 26px;box-shadow:0 6px 24px #144e370a;display:grid;gap:18px}
+.anda-card-head{display:flex;align-items:start;justify-content:space-between;gap:14px;border-bottom:1px solid #e7efe9;padding-bottom:14px}
+.anda-card-head h3{margin:0 0 4px;font-size:18px;font-weight:850;color:#173b35}
+.anda-card-desc{margin:0;font-size:12px;color:#6d8e81}
+.anda-status-tag{font:700 11px/1 Consolas,"Microsoft YaHei",monospace;padding:5px 11px;border-radius:99px;background:#dcf4e6;color:#0b6a4f;white-space:nowrap}
+.anda-field-group{display:grid;gap:6px}
+.anda-field-group label{font-size:12px;font-weight:800;color:#4c7061}
+.anda-field-head{display:flex;justify-content:space-between;align-items:center}
+.anda-key-badge{font-size:11px;color:#127355;font-weight:700}
+.anda-field-group input{border:1px solid #cedfd5;background:#f8fbf9;border-radius:11px;padding:11px 14px;font-size:13px;color:#173b35;font-family:Consolas,"Segoe UI",sans-serif}
+.anda-key-input-box{display:flex;align-items:center;gap:8px}
+.anda-key-input-box input{flex:1}
+.anda-btn-ghost{border:1px solid #cedfd5;background:#fff;border-radius:11px;padding:10px 14px;font-size:16px;color:#55786a;transition:background .15s}
+.anda-btn-ghost:hover{background:#eef6f2}
+.anda-model-picker{position:relative}
+.anda-model-hint{position:absolute;right:12px;top:50%;transform:translateY(-50%);font:700 11px Consolas,sans-serif;color:#157558;background:#dff5e9;padding:3px 8px;border-radius:6px}
+.anda-config-actions{display:flex;gap:12px;margin-top:8px}
+.anda-btn-outline{flex:1;border:1px solid #176a56;background:#fff;color:#176a56;border-radius:12px;padding:13px 18px;font-size:13.5px;font-weight:800;transition:all .15s}
+.anda-btn-outline:hover{background:#ebf7f1}
+.anda-btn-primary{flex:1.4;border:0;background:#176a56;color:#fff;border-radius:12px;padding:13px 20px;font-size:13.5px;font-weight:800;transition:all .15s;box-shadow:0 6px 18px #176a5624}
+.anda-btn-primary:hover{background:#0e5846}
+.anda-test-status{padding:12px 16px;border-radius:12px;background:#eef6f2;border:1px solid #cae2d6;font-size:12.5px;color:#145f4c;line-height:1.6}
+
+.anda-readme-card{background:#f3f7f5;border:1px solid #dce8e1;border-radius:18px;padding:20px 24px;color:#5a7d70;font-size:12px;line-height:1.75}
+.anda-readme-card h4{margin:0 0 8px;font-size:13px;font-weight:800;color:#205245}
+.anda-readme-card p{margin:4px 0}
+.anda-readme-card code{font-family:Consolas,monospace;background:#e5f0e9;padding:2px 6px;border-radius:4px;color:#135d49}
+
 @media(max-width:1050px){.readings{grid-template-columns:repeat(2,minmax(0,1fr))}.intro{grid-template-columns:1fr 300px}.flow{gap:10px}.flow-title{width:100%}}
-@media(max-width:700px){.page-shell{padding:0 16px}.topbar{height:68px}.edition{display:none}.intro{display:block;padding:42px 0 32px}.intro h1{font-size:46px}.intro-copy{font-size:13px}.connection-card{margin-top:28px}.flow{gap:9px;padding:15px}.flow-title{width:100%;margin:0}.flow-step{font-size:10px}.flow-step small{font-size:9px}.flow-arrow{font-size:14px}.receipt{display:grid;gap:6px;padding:14px}.receipt small{margin:0}.section-heading{margin:40px 0 16px;align-items:start}.section-heading h2{font-size:23px}.freshness{max-width:115px}.readings{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.reading{min-height:145px;padding:15px}.reading-value{margin:22px 0 8px}.reading-value strong{font-size:34px}.lower-grid{grid-template-columns:1fr;gap:10px}.panel{min-height:210px;padding:20px}.history-list{grid-template-columns:1fr}.agent-form{flex-direction:column}.agent-submit{width:100%}footer{font-size:10px}}
+@media(max-width:700px){.page-shell{padding:0 16px}.topbar{height:68px}.edition{display:none}.intro{display:block;padding:42px 0 32px}.intro h1{font-size:46px}.intro-copy{font-size:13px}.connection-card{margin-top:28px}.flow{gap:9px;padding:15px}.flow-title{width:100%;margin:0}.flow-step{font-size:10px}.flow-step small{font-size:9px}.flow-arrow{font-size:14px}.receipt{display:grid;gap:6px;padding:14px}.receipt small{margin:0}.section-heading{margin:40px 0 16px;align-items:start}.section-heading h2{font-size:23px}.freshness{max-width:115px}.readings{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.reading{min-height:145px;padding:15px}.reading-value{margin:22px 0 8px}.reading-value strong{font-size:34px}.lower-grid{grid-template-columns:1fr;gap:10px}.panel{min-height:210px;padding:20px}.history-list{grid-template-columns:1fr}.anda-entry-card{flex-direction:column;align-items:flex-start}.anda-entry-right{width:100%;justify-content:space-between}.anda-drawer-window{width:100vw;height:100vh;border-radius:0;border:0}.anda-chat-body,.anda-config-body{padding:18px}.anda-welcome-head h3{font-size:26px}.anda-msg{max-width:96%}.anda-config-actions{flex-direction:column}footer{font-size:10px}}
 @media(prefers-reduced-motion:no-preference){.pill-live:before{animation:signal 2s infinite}@keyframes signal{50%{opacity:.25}}}

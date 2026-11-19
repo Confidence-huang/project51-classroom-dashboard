@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#e9f1ee" />
     <meta name="description" content="移远杯智慧教室 4G 实时数据看板" />
     <title>智慧教室 · 实时看板</title>
-    <script type="module" crossorigin src="/project51-classroom-dashboard/assets/index-DZS8LROf.js"></script>
-    <link rel="stylesheet" crossorigin href="/project51-classroom-dashboard/assets/index-an7O5ABT.css">
+    <script type="module" crossorigin src="/project51-classroom-dashboard/assets/index-CsjVWp1_.js"></script>
+    <link rel="stylesheet" crossorigin href="/project51-classroom-dashboard/assets/index-kvU3epJf.css">
   </head>
   <body>
     <div class="page-shell">
@@ -61,31 +61,24 @@
           <article class="reading"><div class="reading-top"><span>环境光照</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span id="light-unit">lx</span></div><p id="light-source">计划由环境传感器提供</p></article>
         </section>
 
-        <section class="panel agent-panel" aria-labelledby="agent-title">
-          <div class="panel-head">
-            <div><p class="eyebrow">AI ASSISTANT · TOOL-CALLING</p><h2 id="agent-title">AI 教室助手</h2></div>
-            <span id="agent-pill" class="pill pill-idle">检测中</span>
-          </div>
-          <p id="agent-note" class="panel-note">基于服务端真实 SQLite 遥测数据回答；严禁编造未接入的人数或 lx 照度，所有节能建议均为只读参考。</p>
-          <div id="agent-presets" class="agent-presets" role="group" aria-label="快捷诊断">
-            <button class="chip-button" type="button" data-preset="diagnose">当前教室体检</button>
-            <button class="chip-button" type="button" data-preset="trend">近 1 小时趋势</button>
-            <button class="chip-button" type="button" data-preset="energy">节能建议（只读）</button>
-            <button class="chip-button" type="button" data-preset="health">链路与传感器自检</button>
-          </div>
-          <form id="agent-form" class="agent-form" autocomplete="off">
-            <input id="agent-input" name="question" type="text" maxlength="300" placeholder="输入问题，例如：当前教室温湿度舒适吗？近半小时有什么变化？" aria-label="向 AI 教室助手提问" />
-            <button id="agent-submit" class="button button-primary agent-submit" type="submit">提问</button>
-          </form>
-          <div id="agent-output" class="agent-output" aria-live="polite" hidden>
-            <div class="agent-answer-head"><strong id="agent-question-echo"></strong><small id="agent-meta"></small></div>
-            <div id="agent-answer" class="agent-answer"></div>
-            <div id="agent-evidence" class="agent-evidence" hidden>
-              <div class="agent-evidence-row"><span class="evidence-label">调用工具</span><div id="agent-tools" class="evidence-tags"></div></div>
-              <div class="agent-evidence-row"><span class="evidence-label">引用样本</span><div id="agent-seqs" class="evidence-tags"></div></div>
-              <div id="agent-boundary" class="agent-boundary"></div>
+        <!-- 安大+ 风格：AI 助手看板入口大卡片 -->
+        <section class="anda-entry-section" aria-label="AI 助手入口">
+          <button id="open-agent-drawer" class="anda-entry-card" type="button">
+            <div class="anda-entry-left">
+              <span class="anda-entry-icon" aria-hidden="true">✨</span>
+              <div class="anda-entry-text">
+                <div class="anda-entry-title">
+                  <span>智慧教室 AI 助手</span>
+                  <span id="agent-entry-model-tag" class="anda-model-tag">deepseek-chat</span>
+                </div>
+                <p class="anda-entry-sub">基于板载真实遥测 · 舒适度、近 1 小时趋势与节能自检一键诊断</p>
+              </div>
             </div>
-          </div>
+            <div class="anda-entry-right">
+              <span id="agent-entry-pill" class="pill pill-idle">检测中</span>
+              <span class="anda-entry-arrow" aria-hidden="true">→</span>
+            </div>
+          </button>
         </section>
 
         <section class="lower-grid">
@@ -102,6 +95,144 @@
         <p class="data-note">说明：板载光敏电阻尚无 lx 标定，实测时显示 ADC 原码；K230 未接入时人数显示“—”。历史记录来自独立接收服务；未部署该服务时公开网站只显示 MQTT 最新消息。</p>
       </main>
       <footer><span>移远杯 · 智慧教室系统</span><span>当前版本：实时展示联调</span></footer>
+    </div>
+
+    <!-- 安大+ 风格沉浸式 AI 助手（全屏抽屉视图） -->
+    <div id="anda-agent-drawer" class="anda-drawer" hidden aria-hidden="true" role="dialog" aria-label="智慧教室 AI 助手">
+      <div id="anda-drawer-backdrop" class="anda-drawer-backdrop"></div>
+      <div class="anda-drawer-window">
+        <!-- 视图 1：对话主界面（1:1 复刻安大+ 图 2） -->
+        <section id="anda-chat-view" class="anda-view anda-view-chat">
+          <header class="anda-topbar">
+            <button id="close-agent-drawer" class="anda-topbar-btn" type="button" aria-label="返回看板">
+              <span class="anda-arrow-back" aria-hidden="true">←</span>
+            </button>
+            <h2 class="anda-topbar-title">智慧教室助手 · <span id="anda-topbar-model">deepseek-chat</span></h2>
+            <div class="anda-topbar-actions">
+              <button id="open-agent-config" class="anda-topbar-btn" type="button" aria-label="AI 服务与模型配置" title="AI 服务与模型配置">
+                <span class="anda-icon-gear" aria-hidden="true">⚙</span>
+              </button>
+            </div>
+          </header>
+
+          <div id="anda-chat-body" class="anda-chat-body">
+            <!-- 初始空态欢迎屏（未提问时） -->
+            <div id="anda-welcome-screen" class="anda-welcome-screen">
+              <div class="anda-welcome-head">
+                <h3>问点什么</h3>
+                <p>实时温湿度、光照、设备上报、舒适度、节能建议都能查。</p>
+              </div>
+              <div class="anda-suggest-grid" role="group" aria-label="快捷提问建议">
+                <button class="anda-suggest-card" type="button" data-preset="diagnose">
+                  <span>当前教室环境舒适吗？进行全面体检</span>
+                  <span class="anda-suggest-arrow" aria-hidden="true">→</span>
+                </button>
+                <button class="anda-suggest-card" type="button" data-preset="trend">
+                  <span>近 1 小时温湿度与光敏波动趋势？</span>
+                  <span class="anda-suggest-arrow" aria-hidden="true">→</span>
+                </button>
+                <button class="anda-suggest-card" type="button" data-preset="energy">
+                  <span>结合最新实测给出空调与通风建议（只读）</span>
+                  <span class="anda-suggest-arrow" aria-hidden="true">→</span>
+                </button>
+                <button class="anda-suggest-card" type="button" data-preset="health">
+                  <span>检查 4G 模组上报频率与设备自检状态</span>
+                  <span class="anda-suggest-arrow" aria-hidden="true">→</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 消息对话流 -->
+            <div id="anda-messages-list" class="anda-messages-list" aria-live="polite"></div>
+          </div>
+
+          <footer class="anda-chat-footer">
+            <form id="anda-agent-form" class="anda-input-bar" autocomplete="off">
+              <input id="anda-agent-input" name="question" type="text" maxlength="300" placeholder="问温湿度、光敏ADC、设备状态、节能建议..." aria-label="向 AI 教室助手提问" />
+              <button id="anda-agent-submit" class="anda-send-btn" type="submit">
+                <span class="anda-send-arrow" aria-hidden="true">➤</span>
+                <span>发送</span>
+              </button>
+            </form>
+          </footer>
+        </section>
+
+        <!-- 视图 2：模型配置界面（1:1 复刻安大+ 图 3 & 图 4） -->
+        <section id="anda-config-view" class="anda-view anda-view-config" hidden>
+          <header class="anda-topbar">
+            <button id="back-to-chat" class="anda-topbar-btn" type="button" aria-label="返回对话">
+              <span class="anda-arrow-back" aria-hidden="true">←</span>
+            </button>
+            <h2 class="anda-topbar-title">AI 服务与模型配置</h2>
+            <div class="anda-topbar-actions">
+              <button id="close-config-drawer" class="anda-topbar-btn" type="button" aria-label="关闭面板" title="关闭">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+          </header>
+
+          <div class="anda-config-body">
+            <div class="anda-config-section">
+              <label class="anda-config-label">选择服务平台</label>
+              <div class="anda-platform-tabs" role="tablist">
+                <button class="anda-tab-pill active" type="button" data-platform="deepseek">✓ DeepSeek</button>
+                <button class="anda-tab-pill" type="button" data-platform="dashscope">通义千问</button>
+                <button class="anda-tab-pill" type="button" data-platform="zhipu">智谱 GLM</button>
+                <button class="anda-tab-pill" type="button" data-platform="siliconflow">硅基流动</button>
+                <button class="anda-tab-pill" type="button" data-platform="custom">自定义渠道</button>
+              </div>
+            </div>
+
+            <div class="anda-config-card">
+              <div class="anda-card-head">
+                <div>
+                  <h3 id="anda-platform-name">DeepSeek 配置</h3>
+                  <p id="anda-platform-desc" class="anda-card-desc">深度求索，提供高性价比推理与代码能力</p>
+                </div>
+                <span class="anda-status-tag">● ECS 端已配置</span>
+              </div>
+
+              <div class="anda-field-group">
+                <label>API 请求地址 (Base URL)</label>
+                <input id="anda-cfg-base-url" type="text" readonly value="https://api.deepseek.com/v1" />
+              </div>
+
+              <div class="anda-field-group">
+                <div class="anda-field-head">
+                  <label>API 密钥 (API Key)</label>
+                  <span class="anda-key-badge">已保存密钥（服务端隔离存储）</span>
+                </div>
+                <div class="anda-key-input-box">
+                  <input id="anda-cfg-key" type="password" readonly value="sk-xxxxxxxxxxxxxxxxxxxxxxxx" />
+                  <button id="anda-toggle-key" class="anda-btn-ghost" type="button" title="显隐提示">👁</button>
+                </div>
+              </div>
+
+              <div class="anda-field-group">
+                <label>模型选择</label>
+                <div class="anda-model-picker">
+                  <input id="anda-cfg-model" type="text" readonly value="deepseek-chat" />
+                  <span class="anda-model-hint">当前生效</span>
+                </div>
+              </div>
+
+              <div class="anda-config-actions">
+                <button id="anda-test-btn" class="anda-btn-outline" type="button">↻ 测试连接</button>
+                <button id="anda-enter-chat-btn" class="anda-btn-primary" type="button">➤ 进入 AI 对话</button>
+              </div>
+
+              <div id="anda-test-status" class="anda-test-status" hidden></div>
+            </div>
+
+            <div class="anda-readme-card">
+              <h4>接入与安全说明</h4>
+              <p>• 本系统使用真实 Tool-Calling 查询 ECS 端 SQLite 遥测历史，严格杜绝虚构未接入传感器数据与未标定照度。</p>
+              <p>• API Key 严格保存在 ECS 云服务器 root-only 环境文件（<code>/etc/project51-classroom/llm-agent.env</code>），浏览器不持有私钥，安全不泄露。</p>
+              <p>• 如需切换平台或更换 Key，请在本地终端运行 <code>python pipeline/provision-llm-env.py</code> 进行无落盘安全配置。</p>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
 
     <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">

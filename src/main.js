@@ -8,7 +8,7 @@ import './style.css'                 // 看板在电脑和手机上共用同一�
 
 // --- 页面数据 ---
 const elements = Object.fromEntries( // 所有可变区域集中列出，便于队友找显示位置。
-  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','light-unit','people-source','temperature-source','humidity-source','light-source','link-summary','link-note','link-updated','flow-broker','flow-browser','receipt-label','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','agent-pill','agent-note','agent-presets','agent-form','agent-input','agent-submit','agent-output','agent-question-echo','agent-meta','agent-answer','agent-evidence','agent-tools','agent-seqs','agent-boundary','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
+  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','light-unit','people-source','temperature-source','humidity-source','light-source','link-summary','link-note','link-updated','flow-broker','flow-browser','receipt-label','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','open-agent-drawer','close-agent-drawer','anda-drawer-backdrop','anda-agent-drawer','agent-entry-pill','agent-entry-model-tag','anda-chat-view','anda-config-view','open-agent-config','back-to-chat','close-config-drawer','anda-topbar-model','anda-welcome-screen','anda-messages-list','anda-agent-form','anda-agent-input','anda-agent-submit','anda-platform-name','anda-platform-desc','anda-cfg-base-url','anda-cfg-key','anda-cfg-model','anda-toggle-key','anda-test-btn','anda-enter-chat-btn','anda-test-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
     .map(id => [id, document.getElementById(id)])
 )
 
@@ -208,79 +208,82 @@ function openConnection(event) {
   refreshAgentStatus()
 }
 
-// --- AI 教室助手（单轮问答 + 快捷诊断，严格 textContent 渲染） ---
-function setAgentBadge(label, kind) {
-  elements['agent-pill'].textContent = label
-  elements['agent-pill'].className = `pill pill-${kind}`
+// --- 安大+ 平台展示与预设配置 ---
+const PLATFORM_PRESETS = {
+  deepseek: {
+    name: 'DeepSeek 配置',
+    desc: '深度求索，提供高性价比推理与代码能力',
+    baseUrl: 'https://api.deepseek.com/v1',
+    model: 'deepseek-chat',
+  },
+  dashscope: {
+    name: '阿里云百炼 · 通义千问配置',
+    desc: '阿里云通义大模型，兼具稳定企业级能力与丰富工具调用',
+    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    model: 'qwen-plus',
+  },
+  zhipu: {
+    name: '智谱清言 · GLM 配置',
+    desc: '国产领先通用大模型，多轮 Tool-Calling 与长文本理解',
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    model: 'glm-4.5-air',
+  },
+  siliconflow: {
+    name: '硅基流动 · SiliconFlow 配置',
+    desc: '一站式大模型推理服务，低延迟聚合开源大模型',
+    baseUrl: 'https://api.siliconflow.cn/v1',
+    model: 'Qwen/Qwen2.5-7B-Instruct',
+  },
+  custom: {
+    name: '自定义 OpenAI 兼容接口',
+    desc: '支持接入任意兼容 OpenAI /chat/completions 规范的 API 节点',
+    baseUrl: 'https://api.your-domain.com/v1',
+    model: 'custom-model',
+  },
 }
 
-function setAgentControlsDisabled(disabled) {
-  elements['agent-input'].disabled = disabled
-  elements['agent-submit'].disabled = disabled
-  for (const button of elements['agent-presets'].querySelectorAll('button')) button.disabled = disabled
+// --- 安大+ 抽屉视图控制 ---
+function openAgentDrawer() {
+  elements['anda-agent-drawer'].hidden = false
+  elements['anda-agent-drawer'].setAttribute('aria-hidden', 'false')
+  switchView('chat')
 }
 
-function renderParagraphs(container, text) {
-  container.replaceChildren()
-  const lines = String(text || '').split(/\r?\n+/).map(s => s.trim()).filter(Boolean)
-  for (const line of lines.length ? lines : ['（无内容）']) {
-    const p = document.createElement('p')
-    p.textContent = line
-    container.append(p)
+function closeAgentDrawer() {
+  elements['anda-agent-drawer'].hidden = true
+  elements['anda-agent-drawer'].setAttribute('aria-hidden', 'true')
+}
+
+function switchView(viewName) {
+  const isChat = viewName === 'chat'
+  elements['anda-chat-view'].hidden = !isChat
+  elements['anda-config-view'].hidden = isChat
+  if (isChat) {
+    setTimeout(() => elements['anda-agent-input']?.focus(), 50)
   }
 }
 
-function renderAgentEvidence(data) {
-  elements['agent-tools'].replaceChildren()
-  const tools = Array.isArray(data.tools_used) ? data.tools_used : []
-  if (tools.length === 0) {
-    const empty = document.createElement('span')
-    empty.className = 'evidence-tag'
-    empty.textContent = '未调用工具'
-    elements['agent-tools'].append(empty)
-  } else {
-    for (const tool of tools) {
-      const tag = document.createElement('span')
-      tag.className = 'evidence-tag'
-      tag.textContent = tool.summary ? `${tool.name} · ${tool.summary}` : tool.name
-      elements['agent-tools'].append(tag)
-    }
-  }
+// --- AI 助手状态同步 ---
+function updateAgentBadge(label, kind) {
+  elements['agent-entry-pill'].textContent = label
+  elements['agent-entry-pill'].className = `pill pill-${kind}`
+}
 
-  elements['agent-seqs'].replaceChildren()
-  const seqs = Array.isArray(data.referenced_seqs) ? data.referenced_seqs : []
-  if (seqs.length === 0) {
-    const empty = document.createElement('span')
-    empty.className = 'evidence-tag'
-    empty.textContent = '暂无引用样本'
-    elements['agent-seqs'].append(empty)
-  } else {
-    for (const seq of seqs) {
-      const tag = document.createElement('span')
-      tag.className = 'evidence-tag evidence-tag-seq'
-      tag.textContent = `#${seq}`
-      elements['agent-seqs'].append(tag)
-    }
+function setAgentFormDisabled(disabled) {
+  elements['anda-agent-input'].disabled = disabled
+  elements['anda-agent-submit'].disabled = disabled
+  for (const card of elements['anda-welcome-screen'].querySelectorAll('button')) {
+    card.disabled = disabled
   }
-
-  const boundary = data.data_boundary || {}
-  const flags = [
-    boundary.has_data === false ? '数据库暂无样本' : boundary.simulated ? '包含模拟数据（非板端实测）' : '板端实测数据',
-    boundary.stale ? '数据已过期（>30s）' : '数据时效正常',
-    boundary.people_available ? '人数已接入' : 'K230 人数未接入',
-    boundary.lux_calibrated ? '光照已标定 lx' : '光敏未标定 lx（仅 ADC 原码）',
-    '只读建议无反控',
-  ]
-  elements['agent-boundary'].textContent = `数据边界：${flags.join(' · ')}`
-  elements['agent-evidence'].hidden = false
 }
 
 async function refreshAgentStatus() {
   if (!state.historyAPI) {
     state.agentEnabled = false
-    setAgentBadge('需历史 API', 'idle')
-    setAgentControlsDisabled(true)
-    elements['agent-note'].textContent = '连接只读 HTTPS 历史 API 后即可启用 AI 教室助手；API Key 仅保存在服务端。'
+    updateAgentBadge('需历史 API', 'idle')
+    elements['agent-entry-model-tag'].textContent = '待配置'
+    elements['anda-topbar-model'].textContent = '需历史 API'
+    setAgentFormDisabled(true)
     return
   }
   try {
@@ -288,81 +291,256 @@ async function refreshAgentStatus() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const data = await response.json()
     state.agentEnabled = Boolean(data.enabled)
-    state.agentModel = data.model || ''
+    state.agentModel = data.model || 'deepseek-chat'
+    elements['agent-entry-model-tag'].textContent = state.agentModel
+    elements['anda-topbar-model'].textContent = state.agentModel
+    elements['anda-cfg-model'].value = state.agentModel
     if (state.agentEnabled) {
-      if (!state.agentBusy) setAgentBadge(`就绪 · ${state.agentModel}`, 'live')
-      setAgentControlsDisabled(state.agentBusy)
-      const perMin = data.rate_limit?.per_min ?? 6
-      const dailyCap = data.rate_limit?.daily_cap ?? 200
-      elements['agent-note'].textContent = `基于服务端真实 SQLite 数据回答（单 IP ${perMin} 次/分钟 · 全站 ${dailyCap} 次/天）；严禁编造未接入的人数或 lx。`
+      if (!state.agentBusy) updateAgentBadge(`就绪 · ${state.agentModel}`, 'live')
+      setAgentFormDisabled(state.agentBusy)
     } else {
-      setAgentBadge('未配置模型', 'warn')
-      setAgentControlsDisabled(true)
-      elements['agent-note'].textContent = '后端尚未配置大模型 API Key（不影响实时遥测展示）；服务端配置后刷新即可启用。'
+      updateAgentBadge('未配置模型', 'warn')
+      setAgentFormDisabled(true)
     }
   } catch {
     state.agentEnabled = false
-    setAgentBadge('助手暂不可达', 'error')
-    setAgentControlsDisabled(true)
-    elements['agent-note'].textContent = '无法连接 AI 助手状态接口，请稍后刷新重试。'
+    updateAgentBadge('助手暂不可达', 'error')
+    setAgentFormDisabled(true)
   }
 }
 
-async function askAgent({ question = '', preset = '', label = '' }) {
+// --- 对话流渲染（纯 textContent 渲染，杜绝 XSS） ---
+function appendUserMessage(text) {
+  elements['anda-welcome-screen'].hidden = true
+  const msgEl = document.createElement('div')
+  msgEl.className = 'anda-msg anda-msg-user'
+  const bubble = document.createElement('div')
+  bubble.className = 'anda-msg-user-bubble'
+  bubble.textContent = text
+  msgEl.append(bubble)
+  elements['anda-messages-list'].append(msgEl)
+  scrollChatToBottom()
+}
+
+function appendAiLoading() {
+  const msgEl = document.createElement('div')
+  msgEl.className = 'anda-msg anda-msg-ai'
+  const card = document.createElement('div')
+  card.className = 'anda-msg-ai-card'
+  const p = document.createElement('p')
+  p.textContent = '正在通过 SQLite Tool-Calling 检索最新实测与趋势数据…'
+  card.append(p)
+  msgEl.append(card)
+  elements['anda-messages-list'].append(msgEl)
+  scrollChatToBottom()
+  return {
+    update(payload, isError = false) {
+      card.replaceChildren()
+      if (isError) {
+        const errP = document.createElement('p')
+        errP.textContent = payload.message || '请求失败，请稍后重试。'
+        errP.style.color = '#ae4e48'
+        card.append(errP)
+        return
+      }
+
+      const lines = String(payload.answer || '').split(/\r?\n+/).map(s => s.trim()).filter(Boolean)
+      for (const line of lines.length ? lines : ['（无内容）']) {
+        const lineP = document.createElement('p')
+        lineP.textContent = line
+        card.append(lineP)
+      }
+
+      // 证据与时效栏
+      const evidence = document.createElement('div')
+      evidence.className = 'anda-evidence-box'
+
+      // 工具
+      const toolRow = document.createElement('div')
+      toolRow.className = 'anda-evidence-row'
+      const toolLbl = document.createElement('span')
+      toolLbl.className = 'anda-evidence-label'
+      toolLbl.textContent = '调用工具'
+      const toolTags = document.createElement('div')
+      toolTags.className = 'anda-evidence-tags'
+      const tools = Array.isArray(payload.tools_used) ? payload.tools_used : []
+      if (tools.length === 0) {
+        const tag = document.createElement('span')
+        tag.className = 'anda-tag'
+        tag.textContent = '未调用工具'
+        toolTags.append(tag)
+      } else {
+        for (const t of tools) {
+          const tag = document.createElement('span')
+          tag.className = 'anda-tag'
+          tag.textContent = t.summary ? `${t.name} · ${t.summary}` : t.name
+          toolTags.append(tag)
+        }
+      }
+      toolRow.append(toolLbl, toolTags)
+      evidence.append(toolRow)
+
+      // 样本序号
+      const seqRow = document.createElement('div')
+      seqRow.className = 'anda-evidence-row'
+      const seqLbl = document.createElement('span')
+      seqLbl.className = 'anda-evidence-label'
+      seqLbl.textContent = '引用样本'
+      const seqTags = document.createElement('div')
+      seqTags.className = 'anda-evidence-tags'
+      const seqs = Array.isArray(payload.referenced_seqs) ? payload.referenced_seqs : []
+      if (seqs.length === 0) {
+        const tag = document.createElement('span')
+        tag.className = 'anda-tag'
+        tag.textContent = '暂无引用样本'
+        seqTags.append(tag)
+      } else {
+        for (const s of seqs) {
+          const tag = document.createElement('span')
+          tag.className = 'anda-tag anda-tag-seq'
+          tag.textContent = `#${s}`
+          seqTags.append(tag)
+        }
+      }
+      seqRow.append(seqLbl, seqTags)
+      evidence.append(seqRow)
+
+      // 数据边界
+      const boundary = payload.data_boundary || {}
+      const bText = document.createElement('div')
+      bText.className = 'anda-boundary-text'
+      const flags = [
+        boundary.has_data === false ? '数据库暂无样本' : boundary.simulated ? '模拟数据' : '板端实测',
+        boundary.stale ? '数据已过期（>30s）' : '时效正常',
+        boundary.people_available ? '人数已接入' : 'K230 人数未接入',
+        boundary.lux_calibrated ? '光照已标定 lx' : '光敏未标定 lx（仅 ADC 原码）',
+        '只读建议无反控',
+      ]
+      bText.textContent = `数据边界：${flags.join(' · ')}`
+      evidence.append(bText)
+
+      // 元信息
+      const meta = document.createElement('div')
+      meta.className = 'anda-msg-meta'
+      const seconds = ((Number(payload.latency_ms) || 0) / 1000).toFixed(1)
+      meta.textContent = `${payload.model || state.agentModel} · 耗时 ${seconds}s · ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
+      evidence.append(meta)
+
+      card.append(evidence)
+      scrollChatToBottom()
+    },
+  }
+}
+
+function scrollChatToBottom() {
+  const body = document.getElementById('anda-chat-body')
+  if (body) {
+    requestAnimationFrame(() => {
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' })
+    })
+  }
+}
+
+async function askAgentQuestion({ question = '', preset = '', label = '' }) {
   if (state.agentBusy || !state.historyAPI || !state.agentEnabled) return
-  const cleanQuestion = String(question || '').trim()
-  if (!cleanQuestion && !preset) return
+  const clean = String(question || '').trim()
+  if (!clean && !preset) return
   state.agentBusy = true
-  setAgentControlsDisabled(true)
-  setAgentBadge('分析中…', 'warn')
-  elements['agent-output'].hidden = false
-  elements['agent-evidence'].hidden = true
-  elements['agent-question-echo'].textContent = label || cleanQuestion
-  elements['agent-meta'].textContent = '查询 SQLite 中…'
-  renderParagraphs(elements['agent-answer'], '正在调用服务端只读工具查询实时与历史数据，请稍候…')
+  setAgentFormDisabled(true)
+  updateAgentBadge('分析中…', 'warn')
+
+  const userText = label || clean
+  appendUserMessage(userText)
+  const pending = appendAiLoading()
 
   try {
     const response = await fetch(`${state.historyAPI}/api/agent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(preset ? { preset } : { question: cleanQuestion }),
+      body: JSON.stringify(preset ? { preset } : { question: clean }),
     })
     const payload = await response.json().catch(() => ({}))
     if (!response.ok) {
-      const msg = payload.message || `请求失败（HTTP ${response.status}）`
-      elements['agent-meta'].textContent = response.status === 429 ? '触发限流保护' : `HTTP ${response.status}`
-      renderParagraphs(elements['agent-answer'], msg)
-      setAgentBadge(response.status === 429 ? '已限流' : '调用异常', response.status === 429 ? 'warn' : 'error')
+      pending.update({ message: payload.message || `请求失败（HTTP ${response.status}）` }, true)
+      updateAgentBadge(response.status === 429 ? '已限流' : '调用异常', response.status === 429 ? 'warn' : 'error')
       return
     }
-    const seconds = ((Number(payload.latency_ms) || 0) / 1000).toFixed(1)
-    const fallbackHint = payload.mode === 'context_fallback' ? ' · 预查模式' : ''
-    elements['agent-meta'].textContent = `${payload.model || state.agentModel} · ${seconds}s${fallbackHint}`
-    renderParagraphs(elements['agent-answer'], payload.answer)
-    renderAgentEvidence(payload)
-    setAgentBadge(`就绪 · ${state.agentModel}`, 'live')
-    if (!preset) elements['agent-input'].value = ''
+    pending.update(payload, false)
+    updateAgentBadge(`就绪 · ${state.agentModel}`, 'live')
+    if (!preset) elements['anda-agent-input'].value = ''
   } catch (error) {
-    elements['agent-meta'].textContent = '网络异常'
-    renderParagraphs(elements['agent-answer'], `无法完成 AI 助手请求：${error.message}`)
-    setAgentBadge('网络异常', 'error')
+    pending.update({ message: `网络异常：${error.message}` }, true)
+    updateAgentBadge('网络异常', 'error')
   } finally {
     state.agentBusy = false
-    setAgentControlsDisabled(!state.agentEnabled)
+    setAgentFormDisabled(!state.agentEnabled)
   }
 }
 
-// --- 触发事件与反馈 ---
-elements['connection-form'].addEventListener('submit', openConnection)
-elements['agent-form'].addEventListener('submit', event => {
+// --- 事件绑定 ---
+elements['open-agent-drawer'].addEventListener('click', openAgentDrawer)
+elements['close-agent-drawer'].addEventListener('click', closeAgentDrawer)
+elements['close-config-drawer'].addEventListener('click', closeAgentDrawer)
+elements['anda-drawer-backdrop'].addEventListener('click', closeAgentDrawer)
+elements['open-agent-config'].addEventListener('click', () => switchView('config'))
+elements['back-to-chat'].addEventListener('click', () => switchView('chat'))
+elements['anda-enter-chat-btn'].addEventListener('click', () => switchView('chat'))
+
+elements['anda-welcome-screen'].addEventListener('click', event => {
+  const card = event.target.closest('button[data-preset]')
+  if (!card || card.disabled) return
+  askAgentQuestion({ preset: card.dataset.preset, label: card.querySelector('span')?.textContent.trim() })
+})
+
+elements['anda-agent-form'].addEventListener('submit', event => {
   event.preventDefault()
-  askAgent({ question: elements['agent-input'].value })
+  askAgentQuestion({ question: elements['anda-agent-input'].value })
 })
-elements['agent-presets'].addEventListener('click', event => {
-  const button = event.target.closest('button[data-preset]')
-  if (!button || button.disabled) return
-  askAgent({ preset: button.dataset.preset, label: button.textContent.trim() })
+
+// 平台选择切换展示
+const tabsContainer = document.querySelector('.anda-platform-tabs')
+if (tabsContainer) {
+  tabsContainer.addEventListener('click', event => {
+    const tab = event.target.closest('button[data-platform]')
+    if (!tab) return
+    for (const btn of tabsContainer.querySelectorAll('button')) btn.classList.remove('active')
+    tab.classList.add('active')
+    const key = tab.dataset.platform
+    const conf = PLATFORM_PRESETS[key] || PLATFORM_PRESETS.deepseek
+    elements['anda-platform-name'].textContent = conf.name
+    elements['anda-platform-desc'].textContent = conf.desc
+    elements['anda-cfg-base-url'].value = conf.baseUrl
+    elements['anda-cfg-model'].value = conf.model
+  })
+}
+
+// 密文显隐提示
+elements['anda-toggle-key'].addEventListener('click', () => {
+  const input = elements['anda-cfg-key']
+  input.type = input.type === 'password' ? 'text' : 'password'
 })
+
+// 测试连接按钮
+elements['anda-test-btn'].addEventListener('click', async () => {
+  const statusBox = elements['anda-test-status']
+  statusBox.hidden = false
+  statusBox.textContent = '正在测试连接到 ECS 助手状态接口…'
+  const t0 = performance.now()
+  try {
+    const res = await fetch(`${state.historyAPI || ''}/api/agent/status`, { cache: 'no-store' })
+    const ms = Math.round(performance.now() - t0)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    statusBox.textContent = `● 连接正常（往返延迟 ${ms} ms）· 当前后端模型：${data.model || '未识别'} · 限流策略：${data.rate_limit?.per_min || 6} 次/分，全站上限 ${data.rate_limit?.daily_cap || 200} 次/天。`
+    statusBox.style.color = '#12674e'
+  } catch (error) {
+    statusBox.textContent = `× 连接失败：${error.message}`
+    statusBox.style.color = '#ae4e48'
+  }
+})
+
+// --- 原有连接与设置对话框事件 ---
+elements['connection-form'].addEventListener('submit', openConnection)
 elements['settings-button'].addEventListener('click', () => elements['settings-dialog'].showModal())
 elements['close-settings'].addEventListener('click', () => elements['settings-dialog'].close())
 elements['disconnect-button'].addEventListener('click', () => {
