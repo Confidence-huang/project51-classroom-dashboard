@@ -102,7 +102,7 @@ createServer(async (request, response) => {
       response.end('Not found')
       return
     }
-    const prefix = '/project51-classroom-dashboard/'
+    const prefix = '/smart-classroom-web/'
     const relative = path === '/' ? 'index.html' : path.startsWith(prefix) ? path.slice(prefix.length) || 'index.html' : null
     const target = relative && resolve(site, relative)
     if (!target || (target !== site && !target.startsWith(site + sep))) {
