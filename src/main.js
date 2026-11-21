@@ -16,7 +16,11 @@ const linkTopic = 'classroom/demo/ec200u/link_test'  // 已经由 EC200U 和在�
 const ecsSite = import.meta.env.MODE === 'ecs'       // ECS 构建使用同源历史 API；Pages 构建优先使用只读 HTTPS API。
 function resolvePublicApiUrl() {
   const query = new URLSearchParams(location.search).get('api')?.trim()
-  const raw = query || (import.meta.env.VITE_PUBLIC_API_URL || '').trim()
+  // GitHub Pages 的标准构建直接读取公开 API，避免换电脑构建时丢失网页数据源。
+  const pagesApiUrl = location.hostname === 'confidence-huang.github.io'
+    ? 'https://api.careerpathdesk.com'
+    : ''
+  const raw = query || (import.meta.env.VITE_PUBLIC_API_URL || pagesApiUrl).trim()
   if (!raw) return ''
   const normalized = raw.replace(/\/$/, '')
   if (normalized.startsWith('https://')) return normalized
