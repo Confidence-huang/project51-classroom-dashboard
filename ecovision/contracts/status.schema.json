@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ecovision:1.0.0:status",
+  "title": "status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "device_id",
+    "boot_id",
+    "seq",
+    "state",
+    "ts",
+    "reason"
+  ],
+  "properties": {
+    "v": {
+      "const": "1.0.0"
+    },
+    "device_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$"
+    },
+    "boot_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{8,32}$"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "state": {
+      "enum": [
+        "online",
+        "offline"
+      ]
+    },
+    "ts": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reason": {
+      "enum": [
+        "connected",
+        "graceful",
+        "lwt"
+      ]
+    }
+  }
+}

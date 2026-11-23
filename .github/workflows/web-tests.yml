@@ -25,5 +25,12 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Test web contracts and agent
         run: npm test
+      - name: Install locked control dashboard dependencies
+        run: npm ci --prefix ecovision/cloud --no-audit --no-fund
+      - name: Verify control dashboard and simulated device ACK
+        run: |
+          node ecovision/cloud/scripts/build-flow.cjs
+          git diff --exit-code -- ecovision/cloud/flows.json
+          npm test --prefix ecovision/cloud
       - name: Verify production build
         run: npm run build -- --outDir "$RUNNER_TEMP/smart-classroom-web"

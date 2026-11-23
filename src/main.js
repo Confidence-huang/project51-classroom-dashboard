@@ -27,6 +27,17 @@ function resolvePublicApiUrl() {
   if (location.hostname === '127.0.0.1' && normalized.startsWith('http://127.0.0.1')) return normalized
   return ''
 }
+// The public page links to the separate authenticated operator console when provisioned.
+const operatorUrl = (import.meta.env.VITE_CONTROL_DASHBOARD_URL || '').trim()
+if (URL.canParse(operatorUrl)) {
+  const url = new URL(operatorUrl)
+  const localDemo = location.hostname === '127.0.0.1' && url.origin === 'http://127.0.0.1:1880'
+  if ((url.protocol === 'https:' || localDemo) && !url.username && !url.password) {
+    const link = document.getElementById('operator-link')
+    link.href = url.href
+    link.hidden = false
+  }
+}
 const publicApiUrl = ecsSite ? '' : resolvePublicApiUrl()
 const publicApiMode = !ecsSite && Boolean(publicApiUrl)
 const readings = {                            // 约定草案；队长确认数据字段后只改这里。

@@ -1,0 +1,70 @@
+{
+  "version": "1.0.0",
+  "uart": {
+    "baud": 115200,
+    "data_bits": 8,
+    "parity": "N",
+    "stop_bits": 1,
+    "max_frame_bytes": 128,
+    "min_rx_buffer_bytes": 512,
+    "frame_timeout_ms": 200,
+    "heartbeat_ms": 1000,
+    "vision_stale_ms": 5000,
+    "crc_check_123456789": "29B1"
+  },
+  "mqtt": {
+    "protocol": "3.1.1",
+    "keepalive_s": 30,
+    "clean_session": true,
+    "max_payload_bytes": 2048,
+    "telemetry_period_s": 5,
+    "dashboard_stale_s": 15,
+    "ack_timeout_s": 10,
+    "topics": {
+      "telemetry": {
+        "suffix": "telemetry",
+        "qos": 1,
+        "retain": false
+      },
+      "command": {
+        "suffix": "cmd",
+        "qos": 1,
+        "retain": false
+      },
+      "ack": {
+        "suffix": "ack",
+        "qos": 1,
+        "retain": false
+      },
+      "status": {
+        "suffix": "status",
+        "qos": 1,
+        "retain": true
+      }
+    }
+  },
+  "control": {
+    "entry_frames": 3,
+    "vacant_s": 30,
+    "temp_stale_ms": 10000,
+    "fan_on_c": 28,
+    "fan_off_c": 27,
+    "temperature_dwell_s": 5,
+    "fault_off_s": 60,
+    "ttl_default_s": 15,
+    "ttl_max_s": 30,
+    "hold_default_s": 120,
+    "hold_min_s": 30,
+    "hold_max_s": 300,
+    "dedup_capacity": 32,
+    "offline_cache_capacity": 32,
+    "button_debounce_ms": 30,
+    "button_long_press_ms": 2000,
+    "priority": [
+      "LOCAL_OFF",
+      "PHYSICAL_BUTTON",
+      "REMOTE_LEASE",
+      "AUTO"
+    ]
+  }
+}
