@@ -3,7 +3,9 @@ const json = require('json-dup-key-validator');
 const { randomUUID } = require('node:crypto');
 const policy = require('../../contracts/policy.json');
 const ajv = new Ajv({ strict: true });
-const validators = Object.fromEntries(['telemetry', 'ack', 'status', 'command'].map(k => [k, ajv.compile(require(`../../contracts/${k}.schema.json`))]));
+// The schemas supply both the wire validators and the dashboard level range.
+const schemas = Object.fromEntries(['telemetry', 'ack', 'status', 'command'].map(k => [k, require(`../../contracts/${k}.schema.json`)]));
+const validators = Object.fromEntries(Object.entries(schemas).map(([kind, schema]) => [kind, ajv.compile(schema)]));
 const newer = (n, old) => old === undefined || ((n - old) >>> 0) > 0 && ((n - old) >>> 0) < 0x80000000;
 function validate(kind, raw) {
   const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : raw;
@@ -48,6 +50,12 @@ class Cloud {
       if (kind === 'ack') {
         const record = this.commands.find(r => r.command.cmd_id === p.cmd_id && r.command.device_id === id && r.command.boot_id === p.boot_id);
         if (!record) throw Error('UNRELATED_ACK');
+        // An extended command needs confirmation of its exact fan level and lamp setting.
+        const requested = record.command;
+        if (p.status === 'APPLIED' && requested.fan_level !== undefined &&
+            (p.mode !== requested.mode || p.fan_level !== requested.fan_level || p.led_out !== requested.led_out)) {
+          throw Error('ACK_OUTPUT_MISMATCH');
+        }
         const late = this.now() - record.started >= policy.mqtt.ack_timeout_s * 1000;
         record.acks.push({ observed_at: new Date().toISOString(), payload: p });
         record.acks = record.acks.slice(-32);
@@ -84,9 +92,11 @@ class Cloud {
     const d = this.devices.get(id);
     const view = d && this.deviceView(d);
     if (!view?.can_control) throw Error('CONTROL_DISABLED');
-    if (Object.keys(intent).some(k => !['mode', 'fan_out', 'led_out', 'hold_s'].includes(k))) throw Error('INTENT');
+    if (Object.keys(intent).some(k => !['mode', 'fan_out', 'fan_level', 'led_out', 'hold_s'].includes(k))) throw Error('INTENT');
     if (this.commands.filter(r => r.state === 'PENDING' && this.now() - r.started < 10000).length >= 32) throw Error('BUSY');
     const t = d.telemetry;
+    // A level in fresh telemetry advertises support for the optional command field.
+    if (intent.fan_level !== undefined && (intent.mode !== 'REMOTE' || t.fan_level === undefined)) throw Error('FAN_LEVEL_UNAVAILABLE');
     const ttl = policy.control.ttl_default_s;
     const cloudUtc = this.utc();
     // Advance the device's trusted sample by elapsed time since receipt. Inbound latency can only make this estimate older.
@@ -95,6 +105,7 @@ class Cloud {
     if (Math.abs(cloudUtc - deviceUtc) >= ttl) throw Error('CLOCK_SKEW');
     const cmd = { v: policy.version, device_id: id, boot_id: t.boot_id, control_epoch: t.control_epoch, cmd_id: randomUUID(), issued_at: Math.min(cloudUtc, deviceUtc), ttl_s: ttl,
       mode: intent.mode, fan_out: intent.mode === 'AUTO' ? null : intent.fan_out, led_out: intent.mode === 'AUTO' ? null : intent.led_out, hold_s: intent.mode === 'AUTO' ? 0 : intent.hold_s ?? policy.control.hold_default_s };
+    if (intent.fan_level !== undefined) cmd.fan_level = intent.fan_level;
     validate('command', JSON.stringify(cmd));
     this.commands.push({ command: cmd, started: this.now(), state: 'PENDING', late: false, acks: [] });
     // Keep active records; historical records are also durably logged.
@@ -106,7 +117,9 @@ class Cloud {
     for (const r of this.commands) if (r.state === 'PENDING' && this.now() - r.started >= policy.mqtt.ack_timeout_s * 1000) {
       r.state = 'TIMEOUT'; this.event('timeout', { cmd_id: r.command.cmd_id, result: 'UNKNOWN' });
     }
-    return { transport_connected: this.connected, devices: [...this.devices.values()].map(d => this.deviceView(d)), commands: this.commands.slice().reverse().map(({ started, ...r }) => ({...r, ack_remaining_ms: Math.max(0, policy.mqtt.ack_timeout_s*1000 - (this.now()-started))})) };
+    return { transport_connected: this.connected,
+      hold_default_s: policy.control.hold_default_s, fan_level_max: schemas.command.properties.fan_level.maximum,
+      devices: [...this.devices.values()].map(d => this.deviceView(d)), commands: this.commands.slice().reverse().map(({ started, ...r }) => ({...r, ack_remaining_ms: Math.max(0, policy.mqtt.ack_timeout_s*1000 - (this.now()-started))})) };
   }
 }
 module.exports = { Cloud, validate, newer };

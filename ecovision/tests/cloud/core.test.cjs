@@ -31,6 +31,20 @@ test('command is PENDING, bound to current session and default TTL/lease', () =>
   assert.equal(c.view().commands[0].ack_remaining_ms, 10000);
   assert.equal(c.view().devices[0].telemetry.mode, telemetry.mode);
 });
+test('levels require capable telemetry and an applied ACK must confirm the exact level', () => {
+  const { c, send, telemetry } = setup();
+  const intent = { mode: 'REMOTE', fan_out: 1, led_out: 1, fan_level: 5 };
+  assert.throws(() => c.command('ev001', intent), /FAN_LEVEL_UNAVAILABLE/);
+  assert.equal(send('telemetry', { ...telemetry, seq: 2, fan_out: 1, fan_level: 2 }), true);
+  assert.throws(() => c.command('ev001', { ...intent, fan_level: 6 }), /SCHEMA/);
+  assert.throws(() => c.command('ev001', { ...intent, fan_out: 0 }), /SCHEMA/);
+  const cmd = c.command('ev001', intent);
+  const ack = { ...applied, cmd_id: cmd.cmd_id, boot_id: telemetry.boot_id };
+  assert.equal(send('ack', { ...ack, fan_level: 4 }), false);
+  assert.equal(c.view().commands[0].state, 'PENDING');
+  assert.equal(send('ack', { ...ack, fan_level: 5 }), true);
+  assert.equal(c.view().commands[0].state, 'APPLIED');
+});
 test('a fresh device clock two seconds behind the cloud does not produce a future command', () => {
   const { c, telemetry, advance } = setup({ clockOffset: 2 });
   advance(4200);

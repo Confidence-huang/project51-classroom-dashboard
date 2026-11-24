@@ -34,7 +34,7 @@ test('TLS MQTT telemetry, independent identity ACL, Node-RED HTTP/socket authent
   const device=simulator({url:config.mqtt.url,ca,device_id:'sim001',username:'sim001',password:devicePassword,ack_delay_ms:1500});cleanups.push(()=>device.close());
   await until(()=>app.bridge.cloud.view().devices[0].can_control);
   assert.equal(app.bridge.cloud.view().devices[0].simulated,true);
-  const cmd=app.bridge.command('sim001',{mode:'REMOTE',fan_out:1,led_out:0});
+  const cmd=app.bridge.command('sim001',{mode:'REMOTE',fan_out:1,fan_level:5,led_out:1});
   assert.equal(app.bridge.cloud.view().commands[0].state,'PENDING');
   await until(()=>app.bridge.cloud.view().commands[0].state==='APPLIED');
   assert.equal(app.bridge.cloud.view().commands[0].acks[0].payload.cmd_id,cmd.cmd_id);
@@ -71,7 +71,8 @@ test('TLS MQTT telemetry, independent identity ACL, Node-RED HTTP/socket authent
   assert.equal(snapshot.telemetry.temp_c,28.5);
   assert.equal(snapshot.telemetry.humidity_pct,45);
   assert.equal(snapshot.telemetry.fan_out,1);
-  assert.equal(snapshot.telemetry.led_out,0);
+  assert.equal(snapshot.telemetry.fan_level,5);
+  assert.equal(snapshot.telemetry.led_out,1);
   assert.equal(snapshot.telemetry.mode,'REMOTE');
   assert.equal(snapshot.can_control,undefined);
   assert.equal(snapshot.commands,undefined);
@@ -86,14 +87,17 @@ test('TLS MQTT telemetry, independent identity ACL, Node-RED HTTP/socket authent
   cleanups.push(()=>socket.close());
   await new Promise((resolve,reject)=>{socket.once('connect',resolve);socket.once('connect_error',reject);});
   // Exercise the same authenticated widget event used by the browser to switch the fan off.
-  socket.emit('widget-send','eco-widget',{payload:{device_id:'sim001',intent:{mode:'REMOTE',fan_out:0,led_out:0}}});
+  socket.emit('widget-send','eco-widget',{payload:{device_id:'sim001',intent:{mode:'REMOTE',fan_out:0,fan_level:0,led_out:0}}});
   await until(()=>app.bridge.cloud.view().commands[0].command.cmd_id!==cmd.cmd_id);
   const off=app.bridge.cloud.view().commands[0];
   assert.equal(off.state,'PENDING');
   assert.equal(off.command.fan_out,0);
   await until(()=>app.bridge.cloud.view().commands[0].state==='APPLIED');
   await until(()=>app.bridge.cloud.view().devices[0].telemetry.fan_out===0);
-  assert.equal(app.bridge.cloud.view().commands[0].acks[0].payload.cmd_id,off.command.cmd_id);
+  const offAck=app.bridge.cloud.view().commands[0].acks[0].payload;
+  assert.equal(offAck.cmd_id,off.command.cmd_id);
+  assert.equal(offAck.fan_level,0);
+  assert.equal(offAck.led_out,0);
 
   const other=mqtt.connect(config.mqtt.url,{ca:cert.cert,username:'sim001',password:devicePassword,reconnectPeriod:0,protocolVersion:4,clean:true});other.on('error',()=>{});cleanups.push(()=>other.endAsync(true));
   await new Promise(resolve=>other.once('connect',resolve));
