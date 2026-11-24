@@ -1,0 +1,6 @@
+{
+  "warm": {"version":"1.0.0","source":"SIMULATION","duration_s":8,"events":[{"at_s":0,"input":{"count":2,"temp":29}}]},
+  "vacant": {"version":"1.0.0","source":"SIMULATION","duration_s":39,"events":[{"at_s":0,"input":{"count":2,"temp":29}},{"at_s":8,"input":{"count":0}}]},
+  "fault": {"version":"1.0.0","source":"SIMULATION","duration_s":73,"events":[{"at_s":0,"input":{"count":2,"temp":29}},{"at_s":8,"input":{"vision":false}}]},
+  "offline": {"version":"1.0.0","source":"SIMULATION","duration_s":20,"events":[{"at_s":0,"input":{"count":2,"temp":29}},{"at_s":8,"input":{"network":false}}]}
+}
