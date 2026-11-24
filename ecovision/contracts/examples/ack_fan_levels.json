@@ -1,0 +1,16 @@
+{
+  "v": "1.1.0",
+  "device_id": "ev001",
+  "boot_id": "0000000000000001",
+  "cmd_id": "demo-001",
+  "status": "APPLIED",
+  "reason": "OK",
+  "received_at": 1794657601,
+  "uptime_ms": 61000,
+  "control_epoch": 0,
+  "mode": "REMOTE",
+  "fan_out": 1,
+  "led_out": 1,
+  "hold_remaining_s": 120,
+  "fan_level": 5
+}

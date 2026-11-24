@@ -100,39 +100,6 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 300
-    },
-    "fan_level": {
-      "description": "Absolute fan setting. 0 is off, 1 through 5 are PWM levels.",
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 5
-    }
-  },
-  "dependentSchemas": {
-    "fan_level": {
-      "anyOf": [
-        {
-          "properties": {
-            "fan_level": {
-              "const": 0
-            },
-            "fan_out": {
-              "const": 0
-            }
-          }
-        },
-        {
-          "properties": {
-            "fan_level": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "fan_out": {
-              "const": 1
-            }
-          }
-        }
-      ]
     }
   }
 }

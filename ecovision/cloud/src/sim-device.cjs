@@ -2,7 +2,8 @@
 const mqtt = require('mqtt');
 const { randomBytes } = require('node:crypto');
 const { validate } = require('./core.cjs');
-const fixture = require('../../contracts/examples/telemetry_normal.json');
+const fixture = require('../../contracts/examples/telemetry_fan_levels.json');
+const policy = require('../../contracts/policy.json');
 function simulator(config) {
   const started = performance.now(), boot = randomBytes(8).toString('hex');
   let seq = 0, deadline = 0;
@@ -39,8 +40,9 @@ function simulator(config) {
       state.fan_level = c.fan_level ?? (state.fan_out ? 2 : 0);
       deadline = c.mode === 'AUTO' ? 0 : performance.now()+c.hold_s*1000; state.hold_remaining_s = c.hold_s; state.last_cmd_id = c.cmd_id;
     }
-    const ack = { v: '1.0.0', device_id: state.device_id, boot_id: boot, cmd_id: c.cmd_id, status: reason ? 'REJECTED' : 'APPLIED', reason: reason || 'OK', received_at: now, uptime_ms: uptime,
-      control_epoch: state.control_epoch, mode: state.mode, fan_out: state.fan_out, fan_level: state.fan_level, led_out: state.led_out, hold_remaining_s: state.hold_remaining_s };
+    const ack = { v: c.v, device_id: state.device_id, boot_id: boot, cmd_id: c.cmd_id, status: reason ? 'REJECTED' : 'APPLIED', reason: reason || 'OK', received_at: now, uptime_ms: uptime,
+      control_epoch: state.control_epoch, mode: state.mode, fan_out: state.fan_out, led_out: state.led_out, hold_remaining_s: state.hold_remaining_s };
+    if (c.v === policy.fan_levels_version) ack.fan_level = state.fan_level;
     const rawAck = JSON.stringify(ack);
     if (!reason) cache.set(c.cmd_id, { raw: rawAck, canonical, expiry: c.issued_at+c.ttl_s });
     setTimeout(() => { if (client.connected) { client.publish(root + 'ack', rawAck, { qos: 1, retain: false }); report(); } }, config.ack_delay_ms ?? 800);

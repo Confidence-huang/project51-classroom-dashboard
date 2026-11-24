@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { Cloud } = require('../../cloud/src/core.cjs');
+const { Cloud, validate } = require('../../cloud/src/core.cjs');
 const fixture = require('../../contracts/examples/telemetry_normal.json');
 const applied = require('../../contracts/examples/ack_applied.json');
 function setup({ clockOffset = 0 } = {}) {
@@ -36,15 +36,33 @@ test('levels require capable telemetry and an applied ACK must confirm the exact
   const { c, command, send, telemetry } = setup();
   const intent = { mode: 'REMOTE', fan_out: 1, led_out: 1, fan_level: 5 };
   assert.throws(() => command(intent), /FAN_LEVEL_UNAVAILABLE/);
-  assert.equal(send('telemetry', { ...telemetry, seq: 2, fan_out: 1, fan_level: 2 }), true);
+  assert.equal(send('telemetry', { ...telemetry, seq: 2, fan_out: 1, fan_level: 2 }), false);
+  assert.equal(send('telemetry', { ...telemetry, v: '1.1.0', seq: 2, fan_out: 1, fan_level: 2 }), true);
   assert.throws(() => command({ ...intent, fan_level: 6 }), /SCHEMA/);
   assert.throws(() => command({ ...intent, fan_out: 0 }), /SCHEMA/);
   const cmd = command(intent);
-  const ack = { ...applied, cmd_id: cmd.cmd_id, boot_id: telemetry.boot_id };
+  assert.equal(cmd.v, '1.1.0');
+  const legacyAck = { ...applied, cmd_id: cmd.cmd_id, boot_id: telemetry.boot_id };
+  assert.equal(send('ack', legacyAck), false);
+  const ack = { ...legacyAck, v: '1.1.0', fan_out: 1 };
   assert.equal(send('ack', { ...ack, fan_level: 4 }), false);
   assert.equal(c.view().commands[0].state, 'PENDING');
   assert.equal(send('ack', { ...ack, fan_level: 5 }), true);
   assert.equal(c.view().commands[0].state, 'APPLIED');
+
+  const auto = command({ mode: 'AUTO' });
+  assert.equal(auto.v, '1.1.0');
+  assert.equal(auto.fan_level, undefined);
+  assert.throws(() => validate('command', JSON.stringify({ ...cmd, fan_level: undefined })), /SCHEMA/);
+
+  // Reprovisioning a device to binary mode starts a new boot with exact v1.0 telemetry.
+  const rollback = { ...telemetry, boot_id: 'abcdef12' };
+  assert.equal(send('telemetry', rollback), true);
+  assert.throws(() => c.command('ev001', intent, rollback), /FAN_LEVEL_UNAVAILABLE/);
+  const binary = c.command('ev001', { mode: 'REMOTE', fan_out: 1, led_out: 1 }, rollback);
+  assert.equal(binary.v, '1.0.0');
+  assert.equal(binary.fan_level, undefined);
+  assert.equal(send('ack', { ...legacyAck, cmd_id: binary.cmd_id, boot_id: rollback.boot_id }), true);
 });
 test('a fresh device clock two seconds behind the cloud does not produce a future command', () => {
   const { command, telemetry, advance } = setup({ clockOffset: 2 });

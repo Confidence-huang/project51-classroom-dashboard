@@ -5,14 +5,16 @@ const policy = require('../../contracts/policy.json');
 const ajv = new Ajv({ strict: true });
 // The schemas supply both the wire validators and the dashboard level range.
 const schemas = Object.fromEntries(['telemetry', 'ack', 'status', 'command'].map(k => [k, require(`../../contracts/${k}.schema.json`)]));
-const validators = Object.fromEntries(Object.entries(schemas).map(([kind, schema]) => [kind, ajv.compile(schema)]));
+const fanLevelSchemas = Object.fromEntries(['telemetry', 'ack', 'command'].map(k => [k, require(`../../contracts/${k}.v1.1.schema.json`)]));
+const validators = new Map(Object.entries(schemas).map(([kind, schema]) => [`${kind}:${policy.version}`, ajv.compile(schema)]));
+for (const [kind, schema] of Object.entries(fanLevelSchemas)) validators.set(`${kind}:${policy.fan_levels_version}`, ajv.compile(schema));
 const newer = (n, old) => old === undefined || ((n - old) >>> 0) > 0 && ((n - old) >>> 0) < 0x80000000;
 function validate(kind, raw) {
   const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : raw;
   if (typeof text !== 'string' || Buffer.byteLength(text) > policy.mqtt.max_payload_bytes) throw Error('PAYLOAD_SIZE');
   if (Buffer.isBuffer(raw) && !Buffer.from(text).equals(raw)) throw Error('UTF8');
   const p = json.parse(text, false);
-  if (!validators[kind]?.(p)) throw Error('SCHEMA');
+  if (!validators.get(`${kind}:${p?.v}`)?.(p)) throw Error('SCHEMA');
   if (kind === 'telemetry') {
     for (const [value, valid, age, limit] of [['count', 'vision_valid', 'vision_age_ms', 5000], ['temp_c', 'temp_valid', 'temp_age_ms', 10000], ['humidity_pct', 'humidity_valid']]) {
       if (p[valid] !== (p[value] !== null)) throw Error('VALIDITY');
@@ -52,6 +54,7 @@ class Cloud {
         if (!record) throw Error('UNRELATED_ACK');
         // An extended command needs confirmation of its exact fan level and lamp setting.
         const requested = record.command;
+        if (p.v !== requested.v) throw Error('ACK_VERSION_MISMATCH');
         if (p.status === 'APPLIED' && requested.fan_level !== undefined &&
             (p.mode !== requested.mode || p.fan_level !== requested.fan_level || p.led_out !== requested.led_out)) {
           throw Error('ACK_OUTPUT_MISMATCH');
@@ -97,15 +100,17 @@ class Cloud {
     if (observed?.boot_id !== t.boot_id || observed?.control_epoch !== t.control_epoch) throw Error('STALE_CONTROL_CONTEXT');
     if (Object.keys(intent).some(k => !['mode', 'fan_out', 'fan_level', 'led_out', 'hold_s'].includes(k))) throw Error('INTENT');
     if (this.commands.filter(r => r.state === 'PENDING' && this.now() - r.started < 10000).length >= 32) throw Error('BUSY');
-    // A level in fresh telemetry advertises support for the optional command field.
-    if (intent.fan_level !== undefined && (intent.mode !== 'REMOTE' || t.fan_level === undefined)) throw Error('FAN_LEVEL_UNAVAILABLE');
+    // Use v1.1 only when matching fresh telemetry advertises support for it.
+    const supportsLevels = t.v === policy.fan_levels_version;
+    if (intent.fan_level !== undefined && (intent.mode !== 'REMOTE' || !supportsLevels)) throw Error('FAN_LEVEL_UNAVAILABLE');
+    const version = intent.fan_level !== undefined || (intent.mode === 'AUTO' && supportsLevels) ? policy.fan_levels_version : policy.version;
     const ttl = policy.control.ttl_default_s;
     const cloudUtc = this.utc();
     // Advance the device's trusted sample by elapsed time since receipt. Inbound latency can only make this estimate older.
     const deviceUtc = t.ts + Math.floor(view.age_ms / 1000);
     // Reject differences outside a command lifetime. Keep the receiver's future and expiry checks unchanged.
     if (Math.abs(cloudUtc - deviceUtc) >= ttl) throw Error('CLOCK_SKEW');
-    const cmd = { v: policy.version, device_id: id, boot_id: t.boot_id, control_epoch: t.control_epoch, cmd_id: randomUUID(), issued_at: Math.min(cloudUtc, deviceUtc), ttl_s: ttl,
+    const cmd = { v: version, device_id: id, boot_id: t.boot_id, control_epoch: t.control_epoch, cmd_id: randomUUID(), issued_at: Math.min(cloudUtc, deviceUtc), ttl_s: ttl,
       mode: intent.mode, fan_out: intent.mode === 'AUTO' ? null : intent.fan_out, led_out: intent.mode === 'AUTO' ? null : intent.led_out, hold_s: intent.mode === 'AUTO' ? 0 : intent.hold_s ?? policy.control.hold_default_s };
     if (intent.fan_level !== undefined) cmd.fan_level = intent.fan_level;
     validate('command', JSON.stringify(cmd));
@@ -120,7 +125,7 @@ class Cloud {
       r.state = 'TIMEOUT'; this.event('timeout', { cmd_id: r.command.cmd_id, result: 'UNKNOWN' });
     }
     return { transport_connected: this.connected,
-      hold_default_s: policy.control.hold_default_s, fan_level_max: schemas.command.properties.fan_level.maximum,
+      hold_default_s: policy.control.hold_default_s, fan_level_max: fanLevelSchemas.command.properties.fan_level.maximum,
       devices: [...this.devices.values()].map(d => this.deviceView(d)), commands: this.commands.slice().reverse().map(({ started, ...r }) => ({...r, ack_remaining_ms: Math.max(0, policy.mqtt.ack_timeout_s*1000 - (this.now()-started))})) };
   }
 }

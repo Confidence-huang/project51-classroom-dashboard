@@ -18,8 +18,10 @@ npm run demo --prefix ecovision/cloud
 
 操作台只监听回环地址。使用非版本控制的运行配置，参考 `config/runtime.example.json`，通过 `ECOVISION_CONFIG` 指定配置文件，然后执行 `npm start --prefix ecovision/cloud`。远程入口需要 HTTPS 反向代理，并在配置中设置精确的 `public_origin`。MQTT 证书、账户和授权设备列表由服务端配置，浏览器只访问经过认证的操作台。
 
-先升级服务端，再烧录支持五档的固件。设备遥测出现 `fan_level` 后，操作台才提供档位选择。旧设备仍支持风扇开关和灯环亮灭。公共 MQTT 契约沿用二值 `fan_out`，通过可选的 `fan_level` 传递实际设置。
+服务端同时接受冻结的 1.0.0 二值报文和 1.1.0 五档报文。先让接收相同主题的严格消费者兼容两版，再在设备上显式启用 1.1.0。收到新鲜的 1.1.0 遥测后，操作台才提供五档。ACK 须与命令的版本一致。回退时先把设备恢复为 1.0.0，验证开关和灯环，再回退消费者。
 
-正式联调需使用能授权设备订阅自身 `cmd`、发布自身 `ack` 的 Broker，并确认命令路由拒绝保留消息。公开 GitHub Pages 看板独立部署。给网页站构建配置设置 VITE_CONTROL_DASHBOARD_URL 为正式 HTTPS 操作台地址，例如 https://control.example.invalid/dashboard/devices 。此值是公开链接。
+浏览器提交操作时附上它看到的设备启动标识和控制代次。设备重启或 B1 操作后，服务端拒绝使用旧状态提交的操作，操作者应刷新后重新确认。
+
+正式联调需使用能授权设备订阅自身 `cmd`、发布自身 `ack` 的 Broker，允许控制账号仅向授权设备发布非保留命令，并确认命令主题无历史保留消息。公开 GitHub Pages 看板独立部署。给网页站构建配置设置 VITE_CONTROL_DASHBOARD_URL 为正式 HTTPS 操作台地址，例如 https://control.example.invalid/dashboard/devices 。此值是公开链接。
 
 更新 `dashboard.vue` 后，执行 `node ecovision/cloud/scripts/build-flow.cjs`，生成对应的 Node-RED 流程。CI 复核生成一致性，并跑状态与本机 TLS/MQTT、认证和控制结果测试。
