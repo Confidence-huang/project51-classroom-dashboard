@@ -82,11 +82,18 @@ class Cloud {
   }
   command(id, intent) {
     const d = this.devices.get(id);
-    if (!d || !this.deviceView(d).can_control) throw Error('CONTROL_DISABLED');
+    const view = d && this.deviceView(d);
+    if (!view?.can_control) throw Error('CONTROL_DISABLED');
     if (Object.keys(intent).some(k => !['mode', 'fan_out', 'led_out', 'hold_s'].includes(k))) throw Error('INTENT');
     if (this.commands.filter(r => r.state === 'PENDING' && this.now() - r.started < 10000).length >= 32) throw Error('BUSY');
     const t = d.telemetry;
-    const cmd = { v: policy.version, device_id: id, boot_id: t.boot_id, control_epoch: t.control_epoch, cmd_id: randomUUID(), issued_at: this.utc(), ttl_s: policy.control.ttl_default_s,
+    const ttl = policy.control.ttl_default_s;
+    const cloudUtc = this.utc();
+    // Advance the device's trusted sample by elapsed time since receipt. Inbound latency can only make this estimate older.
+    const deviceUtc = t.ts + Math.floor(view.age_ms / 1000);
+    // Reject differences outside a command lifetime. Keep the receiver's future and expiry checks unchanged.
+    if (Math.abs(cloudUtc - deviceUtc) >= ttl) throw Error('CLOCK_SKEW');
+    const cmd = { v: policy.version, device_id: id, boot_id: t.boot_id, control_epoch: t.control_epoch, cmd_id: randomUUID(), issued_at: Math.min(cloudUtc, deviceUtc), ttl_s: ttl,
       mode: intent.mode, fan_out: intent.mode === 'AUTO' ? null : intent.fan_out, led_out: intent.mode === 'AUTO' ? null : intent.led_out, hold_s: intent.mode === 'AUTO' ? 0 : intent.hold_s ?? policy.control.hold_default_s };
     validate('command', JSON.stringify(cmd));
     this.commands.push({ command: cmd, started: this.now(), state: 'PENDING', late: false, acks: [] });

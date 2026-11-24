@@ -3,10 +3,11 @@ const assert = require('node:assert/strict');
 const { Cloud } = require('../../cloud/src/core.cjs');
 const fixture = require('../../contracts/examples/telemetry_normal.json');
 const applied = require('../../contracts/examples/ack_applied.json');
-function setup() {
+function setup({ clockOffset = 0 } = {}) {
   let now = 1000000;
   const events = [];
-  const c = new Cloud({ devices: ['ev001'], simulated: ['ev001'], now: () => now, log: e => events.push(e) });
+  const c = new Cloud({ devices: ['ev001'], simulated: ['ev001'], now: () => now,
+    utc: () => Math.floor(now / 1000) + clockOffset, log: e => events.push(e) });
   const send = (kind, data, retain = false) => c.ingest(`ecovision/ev001/${kind}`, JSON.stringify(data), retain);
   const telemetry = { ...fixture, seq: 1, ts: 1000 };
   c.setConnected(true);
@@ -29,6 +30,20 @@ test('command is PENDING, bound to current session and default TTL/lease', () =>
   assert.equal(c.view().commands[0].state, 'PENDING');
   assert.equal(c.view().commands[0].ack_remaining_ms, 10000);
   assert.equal(c.view().devices[0].telemetry.mode, telemetry.mode);
+});
+test('a fresh device clock two seconds behind the cloud does not produce a future command', () => {
+  const { c, telemetry, advance } = setup({ clockOffset: 2 });
+  advance(4200);
+  const command = c.command('ev001', { mode: 'AUTO' });
+  assert.equal(command.issued_at, telemetry.ts + 4);
+  assert.equal(command.ttl_s, 15);
+});
+test('large clock divergence blocks sending until fresh, aligned telemetry arrives', () => {
+  const { c, send, telemetry } = setup({ clockOffset: 60 });
+  assert.throws(() => c.command('ev001', { mode: 'AUTO' }), /CLOCK_SKEW/);
+  assert.equal(c.view().commands.length, 0);
+  send('telemetry', { ...telemetry, seq: 2, ts: telemetry.ts + 60 });
+  assert.equal(c.command('ev001', { mode: 'AUTO' }).issued_at, telemetry.ts + 60);
 });
 test('ACK confirms history only; wrong boot/unrelated ID cannot confirm', () => {
   const { c, send, telemetry } = setup();
