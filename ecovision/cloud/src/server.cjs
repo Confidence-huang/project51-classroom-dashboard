@@ -90,7 +90,7 @@ async function startServer(config) {
     contextStorage:{ default:{module:'memory'} }, logging:{console:{level:'warn',metrics:false,audit:false}},
     functionGlobalContext:{ eco:{ view:() => bridge.cloud.view(), submit:(p) => {
       if (!p || typeof p.device_id !== 'string' || !p.intent || typeof p.intent !== 'object' || Array.isArray(p.intent)) throw Error('INVALID_INTENT');
-      return bridge.command(p.device_id,p.intent);
+      return bridge.command(p.device_id, p.intent, p.observed);
     } } },
     dashboard:{ middleware:auth, ioMiddleware:(socket,next) => authorized(socket.request,config) ? next() : next(Error('Authentication required')), maxHttpBufferSize:4096 }
   });

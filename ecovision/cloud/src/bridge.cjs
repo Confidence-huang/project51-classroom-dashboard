@@ -32,9 +32,9 @@ class Bridge {
     });
     return this;
   }
-  command(id, intent) {
+  command(id, intent, observed) {
     if (!this.client?.connected || !this.cloud.connected) throw Error('CONTROL_DISABLED');
-    const command = this.cloud.command(id, intent);
+    const command = this.cloud.command(id, intent, observed);
     this.client.publish(`ecovision/${id}/cmd`, JSON.stringify(command), { qos: 1, retain: false }, err => {
       if (err) this.cloud.event('publish_error', { cmd_id: command.cmd_id, result: 'UNKNOWN' });
       // PUBACK is transport delivery, never terminal APPLIED.

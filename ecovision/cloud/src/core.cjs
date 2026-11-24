@@ -88,13 +88,15 @@ class Cloud {
       connection: stale ? 'STALE' : offline ? 'OFFLINE' : 'ONLINE',
       can_control: !stale && !offline && d.telemetry.time_valid && d.telemetry.mode !== 'LOCAL_OFF' };
   }
-  command(id, intent) {
+  command(id, intent, observed) {
     const d = this.devices.get(id);
     const view = d && this.deviceView(d);
     if (!view?.can_control) throw Error('CONTROL_DISABLED');
+    const t = d.telemetry;
+    // Sign only the device session the operator saw, even if telemetry has since recovered.
+    if (observed?.boot_id !== t.boot_id || observed?.control_epoch !== t.control_epoch) throw Error('STALE_CONTROL_CONTEXT');
     if (Object.keys(intent).some(k => !['mode', 'fan_out', 'fan_level', 'led_out', 'hold_s'].includes(k))) throw Error('INTENT');
     if (this.commands.filter(r => r.state === 'PENDING' && this.now() - r.started < 10000).length >= 32) throw Error('BUSY');
-    const t = d.telemetry;
     // A level in fresh telemetry advertises support for the optional command field.
     if (intent.fan_level !== undefined && (intent.mode !== 'REMOTE' || t.fan_level === undefined)) throw Error('FAN_LEVEL_UNAVAILABLE');
     const ttl = policy.control.ttl_default_s;

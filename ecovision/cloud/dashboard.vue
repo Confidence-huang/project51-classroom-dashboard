@@ -1,7 +1,7 @@
 <template>
   <section class="eco" v-if="msg && msg.payload">
     <header><h1>EcoVision 绿智微视</h1><p>设备控制</p></header>
-    <p role="alert" v-if="msg.payload.error">请求未发送：{{ msg.payload.error }}</p>
+    <p role="alert" v-if="msg.payload.error">请求未发送：{{ msg.payload.error === 'STALE_CONTROL_CONTEXT' ? '设备状态已变化，请刷新页面并重新确认。' : msg.payload.error }}</p>
     <article v-for="d in msg.payload.devices" :key="d.device_id">
       <h2>{{ d.device_id }} <strong v-if="d.simulated">模拟设备 · 非硬件实测</strong></h2>
       <p>连接：{{ stale(d) ? 'STALE' : d.connection }} · 最后接收（UTC）：{{ d.last_received_at || '尚无数据' }}</p>
@@ -16,7 +16,7 @@
         <span>健康 {{ d.telemetry.faults.join(', ') || '无已报故障' }}</span>
         <span>可信时间 {{ d.telemetry.time_valid ? '是' : '否' }} / epoch {{ d.telemetry.control_epoch }}</span>
       </div>
-      <form v-if="d.telemetry" :key="d.telemetry.boot_id" @submit.prevent="apply(d, $event)">
+      <form v-if="d.telemetry" :key="`${d.telemetry.boot_id}:${d.telemetry.control_epoch}`" @submit.prevent="apply(d, $event)">
         <fieldset :disabled="!d.can_control || !socketReady() || stale(d) || waiting(d.device_id)">
           <legend>手动控制（本地关闭优先）</legend>
           <label>风扇
@@ -70,13 +70,13 @@ export default {
     lampLabel(output) { return output ? '亮' : '灭' },
     selection(device, field) {
       const draft = this.drafts[device.device_id]
-      return draft?.boot === device.telemetry.boot_id ? draft[field] : undefined
+      return draft?.boot === device.telemetry.boot_id && draft.epoch === device.telemetry.control_epoch ? draft[field] : undefined
     },
     select(device, field, event) {
-      // Keep selections through telemetry refreshes and discard them when the device reboots.
+      // Keep selections only while the device is in the same control session.
       const draft = this.drafts[device.device_id]
-      const boot = device.telemetry.boot_id
-      const previous = draft?.boot === boot ? draft : { boot }
+      const { boot_id: boot, control_epoch: epoch } = device.telemetry
+      const previous = draft?.boot === boot && draft.epoch === epoch ? draft : { boot, epoch }
       this.drafts[device.device_id] = { ...previous, [field]: Number(event.target.value) }
     },
     apply(device, event) {
@@ -93,7 +93,8 @@ export default {
 
       delete this.drafts[id]
       this.submitting[id] = performance.now()
-      this.send({ payload: { device_id: id, intent } })
+      const { boot_id, control_epoch } = device.telemetry
+      this.send({ payload: { device_id: id, intent, observed: { boot_id, control_epoch } } })
     }
   }
 }

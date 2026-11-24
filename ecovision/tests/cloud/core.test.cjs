@@ -12,19 +12,20 @@ function setup({ clockOffset = 0 } = {}) {
   const telemetry = { ...fixture, seq: 1, ts: 1000 };
   c.setConnected(true);
   send('telemetry', telemetry);
-  return { c, events, send, telemetry, advance: ms => { now += ms; } };
+  const command = intent => c.command('ev001', intent, telemetry);
+  return { c, events, send, telemetry, command, advance: ms => { now += ms; } };
 }
 test('cloud state implementation exists', () => assert.equal(typeof Cloud, 'function'));
 test('fresh telemetry enables control; duplicate does not refresh 15s deadline', () => {
-  const { c, send, telemetry, advance } = setup();
+  const { c, command, send, telemetry, advance } = setup();
   assert.equal(c.view().devices[0].can_control, true);
   advance(14000); send('telemetry', telemetry); advance(1000);
   assert.equal(c.view().devices[0].connection, 'STALE');
-  assert.throws(() => c.command('ev001', { mode: 'AUTO' }), /CONTROL_DISABLED/);
+  assert.throws(() => command({ mode: 'AUTO' }), /CONTROL_DISABLED/);
 });
 test('command is PENDING, bound to current session and default TTL/lease', () => {
-  const { c, telemetry } = setup();
-  const cmd = c.command('ev001', { mode: 'REMOTE', fan_out: 1, led_out: 0 });
+  const { c, command, telemetry } = setup();
+  const cmd = command({ mode: 'REMOTE', fan_out: 1, led_out: 0 });
   assert.equal(cmd.boot_id, telemetry.boot_id); assert.equal(cmd.control_epoch, telemetry.control_epoch);
   assert.equal(cmd.ttl_s, 15); assert.equal(cmd.hold_s, 120);
   assert.equal(c.view().commands[0].state, 'PENDING');
@@ -32,13 +33,13 @@ test('command is PENDING, bound to current session and default TTL/lease', () =>
   assert.equal(c.view().devices[0].telemetry.mode, telemetry.mode);
 });
 test('levels require capable telemetry and an applied ACK must confirm the exact level', () => {
-  const { c, send, telemetry } = setup();
+  const { c, command, send, telemetry } = setup();
   const intent = { mode: 'REMOTE', fan_out: 1, led_out: 1, fan_level: 5 };
-  assert.throws(() => c.command('ev001', intent), /FAN_LEVEL_UNAVAILABLE/);
+  assert.throws(() => command(intent), /FAN_LEVEL_UNAVAILABLE/);
   assert.equal(send('telemetry', { ...telemetry, seq: 2, fan_out: 1, fan_level: 2 }), true);
-  assert.throws(() => c.command('ev001', { ...intent, fan_level: 6 }), /SCHEMA/);
-  assert.throws(() => c.command('ev001', { ...intent, fan_out: 0 }), /SCHEMA/);
-  const cmd = c.command('ev001', intent);
+  assert.throws(() => command({ ...intent, fan_level: 6 }), /SCHEMA/);
+  assert.throws(() => command({ ...intent, fan_out: 0 }), /SCHEMA/);
+  const cmd = command(intent);
   const ack = { ...applied, cmd_id: cmd.cmd_id, boot_id: telemetry.boot_id };
   assert.equal(send('ack', { ...ack, fan_level: 4 }), false);
   assert.equal(c.view().commands[0].state, 'PENDING');
@@ -46,22 +47,22 @@ test('levels require capable telemetry and an applied ACK must confirm the exact
   assert.equal(c.view().commands[0].state, 'APPLIED');
 });
 test('a fresh device clock two seconds behind the cloud does not produce a future command', () => {
-  const { c, telemetry, advance } = setup({ clockOffset: 2 });
+  const { command, telemetry, advance } = setup({ clockOffset: 2 });
   advance(4200);
-  const command = c.command('ev001', { mode: 'AUTO' });
-  assert.equal(command.issued_at, telemetry.ts + 4);
-  assert.equal(command.ttl_s, 15);
+  const auto = command({ mode: 'AUTO' });
+  assert.equal(auto.issued_at, telemetry.ts + 4);
+  assert.equal(auto.ttl_s, 15);
 });
 test('large clock divergence blocks sending until fresh, aligned telemetry arrives', () => {
-  const { c, send, telemetry } = setup({ clockOffset: 60 });
-  assert.throws(() => c.command('ev001', { mode: 'AUTO' }), /CLOCK_SKEW/);
+  const { c, command, send, telemetry } = setup({ clockOffset: 60 });
+  assert.throws(() => command({ mode: 'AUTO' }), /CLOCK_SKEW/);
   assert.equal(c.view().commands.length, 0);
   send('telemetry', { ...telemetry, seq: 2, ts: telemetry.ts + 60 });
-  assert.equal(c.command('ev001', { mode: 'AUTO' }).issued_at, telemetry.ts + 60);
+  assert.equal(command({ mode: 'AUTO' }).issued_at, telemetry.ts + 60);
 });
 test('ACK confirms history only; wrong boot/unrelated ID cannot confirm', () => {
-  const { c, send, telemetry } = setup();
-  const cmd = c.command('ev001', { mode: 'REMOTE', fan_out: 1, led_out: 1 });
+  const { c, command, send, telemetry } = setup();
+  const cmd = command({ mode: 'REMOTE', fan_out: 1, led_out: 1 });
   const ack = { ...applied, cmd_id: cmd.cmd_id, boot_id: telemetry.boot_id };
   send('ack', { ...ack, boot_id: 'ffffffff' });
   assert.equal(c.view().commands[0].state, 'PENDING');
@@ -70,8 +71,8 @@ test('ACK confirms history only; wrong boot/unrelated ID cannot confirm', () => 
   assert.deepEqual(c.view().devices[0].telemetry, telemetry);
 });
 test('10 seconds without ACK means unknown; late ACK updates history', () => {
-  const { c, send, advance } = setup();
-  const cmd = c.command('ev001', { mode: 'AUTO' }); advance(10000);
+  const { c, command, send, advance } = setup();
+  const cmd = command({ mode: 'AUTO' }); advance(10000);
   assert.equal(c.view().commands[0].state, 'TIMEOUT');
   send('ack', { ...applied, cmd_id: cmd.cmd_id, mode: 'AUTO', hold_remaining_s: 0 });
   assert.equal(c.view().commands[0].state, 'APPLIED');
@@ -112,10 +113,30 @@ test('LOCAL_OFF, untrusted time, transport loss and non-ONLINE snapshots disable
   const { c } = setup(); c.setConnected(false); assert.equal(c.view().devices[0].can_control, false);
 });
 test('rejections are recorded on every delivery and cannot erase a successful ACK', () => {
-  const { c, send } = setup(); const cmd = c.command('ev001', { mode: 'AUTO' });
+  const { c, command, send } = setup(); const cmd = command({ mode: 'AUTO' });
   const a = { ...applied, cmd_id: cmd.cmd_id, mode: 'AUTO', hold_remaining_s: 0 };
   send('ack', { ...a, status: 'REJECTED', reason: 'BUSY' }); send('ack', { ...a, status: 'REJECTED', reason: 'BUSY' });
   assert.equal(c.view().commands[0].acks.length, 2);
   send('ack', a); send('ack', { ...a, status: 'REJECTED', reason: 'EXPIRED' });
   assert.equal(c.view().commands[0].state, 'APPLIED');
+});
+
+test('rejects the old operator context after B1 release or reboot, including AUTO', () => {
+  const { c, send, telemetry } = setup();
+  const manual = { mode: 'REMOTE', fan_out: 1, led_out: 0 };
+  const auto = { mode: 'AUTO' };
+  assert.throws(() => c.command('ev001', manual), /STALE_CONTROL_CONTEXT/);
+
+  send('telemetry', { ...telemetry, seq: 2, mode: 'LOCAL_OFF', control_epoch: 1 });
+  const released = { ...telemetry, seq: 3, mode: 'AUTO', control_epoch: 2 };
+  assert.equal(send('telemetry', released), true);
+  assert.throws(() => c.command('ev001', manual, telemetry), /STALE_CONTROL_CONTEXT/);
+  assert.throws(() => c.command('ev001', auto, telemetry), /STALE_CONTROL_CONTEXT/);
+
+  const rebooted = { ...released, seq: 0, boot_id: 'abcdef12' };
+  assert.equal(send('telemetry', rebooted), true);
+  assert.throws(() => c.command('ev001', manual, released), /STALE_CONTROL_CONTEXT/);
+  assert.throws(() => c.command('ev001', auto, released), /STALE_CONTROL_CONTEXT/);
+  assert.equal(c.view().commands.length, 0);
+  assert.equal(c.command('ev001', auto, rebooted).boot_id, rebooted.boot_id);
 });
