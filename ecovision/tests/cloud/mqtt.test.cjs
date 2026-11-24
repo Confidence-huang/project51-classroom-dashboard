@@ -23,7 +23,11 @@ test('TLS MQTT telemetry, independent identity ACL, Node-RED HTTP/socket authent
   const ca=path.join(dir,'ca.pem');fs.writeFileSync(ca,cert.cert);
   const secret=()=>randomBytes(24).toString('hex');
   const cloudPassword=secret(),devicePassword=secret(),samplePassword=secret();
-  const broker=await testBroker({key:cert.private,cert:cert.cert,identities:{
+  const historicalTopic='ecovision/sim002/cmd';
+  const historicalMarker=Buffer.from('migration-fixture-not-a-command');
+  const broker=await testBroker({key:cert.private,cert:cert.cert,retained:[{
+    cmd:'publish',topic:historicalTopic,payload:historicalMarker,qos:1,retain:true
+  }],identities:{
     cloud:{role:'cloud',devices:['sim001','sim002'],password:cloudPassword},
     sim001:{role:'device',devices:['sim001'],password:devicePassword},
     sim002:{role:'device',devices:['sim002'],password:samplePassword}}});
@@ -113,6 +117,28 @@ test('TLS MQTT telemetry, independent identity ACL, Node-RED HTTP/socket authent
   const refusedRetained=new Promise(resolve=>retained.once('close',resolve));
   retained.publish('ecovision/sim001/cmd','{}',{qos:1,retain:true});
   await refusedRetained;
+
+  // Existing stored messages survive ACL changes. Delete the exact entry before reconnecting.
+  async function subscribeForRetained() {
+    const sub=await mqtt.connectAsync(config.mqtt.url,{ca:cert.cert,username:'sim002',password:samplePassword,
+      clientId:'migration-fixture',protocolVersion:4,clean:true,reconnectPeriod:0});
+    cleanups.push(()=>sub.endAsync(true));
+    const messages=[];
+    sub.on('message',(topic,payload,packet)=>{
+      if (topic===historicalTopic && packet.retain) messages.push(payload);
+    });
+    const [grant]=await sub.subscribeAsync(historicalTopic,{qos:1});
+    assert.equal(grant.qos,1);
+    return {sub,messages};
+  }
+  const first=await subscribeForRetained();
+  await until(()=>first.messages.length===1);
+  assert.deepEqual(first.messages,[historicalMarker]);
+  await first.sub.endAsync(true);
+  await broker.clearRetained(historicalTopic);
+  const afterCleanup=await subscribeForRetained();
+  await delay(150);
+  assert.deepEqual(afterCleanup.messages,[]);
 
   const wrong=mqtt.connect(config.mqtt.url,{ca:cert.cert,username:'sim001',password:secret(),reconnectPeriod:0});wrong.on('error',()=>{});cleanups.push(()=>wrong.endAsync(true));
   await new Promise((resolve,reject)=>{wrong.once('connect',()=>reject(Error('bad password accepted')));wrong.once('error',resolve);});

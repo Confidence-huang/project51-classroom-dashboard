@@ -2,9 +2,11 @@
 const tls = require('node:tls');
 const { timingSafeEqual } = require('node:crypto');
 function equal(a, b) { a = Buffer.from(a || ''); b = Buffer.from(b || ''); return a.length === b.length && timingSafeEqual(a, b); }
-async function testBroker({ key, cert, identities, port = 0 }) {
+async function testBroker({ key, cert, identities, port = 0, retained = [] }) {
   const mod = await import('aedes');
   const broker = mod.Aedes ? await mod.Aedes.createBroker() : mod.default();
+  // Seed the test store before applying the current publish policy, as a migration would find it.
+  for (const packet of retained) await broker.persistence.storeRetained(packet);
   broker.authenticate = (client, username, password, cb) => {
     const identity = identities[username];
     if (!identity || !equal(password, identity.password)) return cb(null, false);
@@ -26,6 +28,8 @@ async function testBroker({ key, cert, identities, port = 0 }) {
   const sockets = new Set();
   server.on('connection', socket => { sockets.add(socket); socket.once('close', () => sockets.delete(socket)); });
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
-  return { port: server.address().port, close: () => new Promise(resolve => { server.close(() => broker.close(resolve)); for (const socket of sockets) socket.destroy(); }) };
+  return { port: server.address().port,
+    clearRetained: topic => broker.persistence.storeRetained({ topic, payload: Buffer.alloc(0) }),
+    close: () => new Promise(resolve => { server.close(() => broker.close(resolve)); for (const socket of sockets) socket.destroy(); }) };
 }
 module.exports = { testBroker };
