@@ -9,7 +9,7 @@
     "history": "node pipeline/history.js",
     "test:contract": "node --test pipeline/telemetry.test.js",
     "test:agent": "node --test pipeline/agent.test.js",
-    "test": "node --test pipeline/telemetry.test.js pipeline/agent.test.js src/public-api.test.js"
+    "test": "node --test pipeline/telemetry.test.js pipeline/agent.test.js src/public-api.test.js src/telemetry-time.test.js"
   },
   "license": "MIT",
   "type": "module",

@@ -5,6 +5,7 @@
 */
 import mqtt from 'mqtt'              // 浏览器经 WSS 使用 MQTT，不依赖电脑串口。
 import { publicApiBase } from './public-api.js' // 使用部署配置选择只读 API。
+import { newerTelemetryTimestamp } from './telemetry-time.js' // 两个接收入口使用同一时间校验。
 import './style.css'                 // 看板在电脑和手机上共用同一套布局。
 
 // --- 页面数据 ---
@@ -46,7 +47,7 @@ function showConnection(label, detail, kind) {
 
 // --- 更新数据新鲜度 ---
 function showFreshness() {
-  const age = Date.now() - state.lastTelemetry       // 以浏览器接收时间判断，不依赖设备时钟。
+  const age = Date.now() - state.lastTelemetry       // 以校验后的设备采样时间判断，重放不会刷新。
   const live = (state.client?.connected || state.historyConnected) && age < 30_000
   const label = !state.lastTelemetry ? '等待数据' : state.simulated ? live ? '模拟数据（非实测）' : '模拟数据已过期' : live ? '实时数据' : '数据已过期'
   elements['data-pill'].textContent = label
@@ -76,6 +77,8 @@ function showMessage(topic, label, payload) {
 
 // --- 仅按已约定格式显示真实遥测 ---
 function showTelemetry(data, receivedAt = new Date().toISOString()) {
+  const capturedAt = newerTelemetryTimestamp(data.captured_at, state.lastTelemetry)
+  if (capturedAt === null) return
   for (const [field, id] of Object.entries(readings)) {      // 每条遥测是完整快照，缺字段显示为“—”。
     const value = data[field]
     elements[id].textContent = typeof value === 'number' && Number.isFinite(value) ? String(value) : '—'
@@ -83,7 +86,7 @@ function showTelemetry(data, receivedAt = new Date().toISOString()) {
   const rawLight = Number.isInteger(data.light_raw_u16) && data.light_lux == null
   if (rawLight) elements['light-lux'].textContent = String(data.light_raw_u16)
   elements['light-unit'].textContent = rawLight ? 'ADC' : 'lx'
-  state.lastTelemetry = Date.parse(data.captured_at || receivedAt) // 保留消息重放不能伪装成刚采到的新数据。
+  state.lastTelemetry = capturedAt // 只有有效、较新的样本才能推进时间。
   state.simulated = data.simulated === true       // 看板显式区分模拟和真实采样。
   const simulatedSource = data.source === 'stm32_micropython_sim' ? '板端模拟 · 非传感器实测' : '电脑生成 · 非实物采集'
   elements['people-source'].textContent = state.simulated ? simulatedSource : data.people_count == null ? 'K230 尚未接入' : '来自 K230，经 STM32 上报'
@@ -127,7 +130,7 @@ async function refreshHistory() {
       item.append(time, `${people} · ${row.temperature_c} °C · ${row.humidity_pct}% · ${light}`)
       elements['history-list'].append(item)     // textContent 路径，不执行云端载荷中的 HTML。
     }
-    if (data.latest && Date.parse(data.latest.captured_at) > state.lastTelemetry) showTelemetry(data.latest, data.latest.received_at)
+    if (data.latest) showTelemetry(data.latest, data.latest.received_at)
     if (apiDriven && data.latest) {
       elements['latest-message'].textContent = `${data.latest.simulated ? '模拟样本' : '设备遥测'} #${data.latest.seq}`
       elements['latest-message-time'].textContent = `云端入库 ${new Date(data.latest.received_at).toLocaleString('zh-CN')}`
@@ -164,7 +167,7 @@ function receive(topic, bytes) {
   }
   if (topic === state.telemetryTopic && data?.type === 'telemetry') {
     showTelemetry(data)                          // 只有正式遥测主题和类型同时匹配才刷新读数。
-    if (data.simulated === false && data.source === 'stm32_micropython_aht20_ldr') {
+    if (data.simulated === false && ['stm32_micropython_aht20_ldr', 'stm32_c_hal_ec200u'].includes(data.source)) {
       elements['link-summary'].textContent = '已收到板端实测上报 · EC200U 4G 链路已验证'
       elements['link-updated'].textContent = `本机接收 ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
     }
