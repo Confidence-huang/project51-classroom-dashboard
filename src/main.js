@@ -4,6 +4,7 @@
 调用方式：由 index.html 加载，页面上点击“连接并接收数据”。
 */
 import mqtt from 'mqtt'              // 浏览器经 WSS 使用 MQTT，不依赖电脑串口。
+import { publicApiBase } from './public-api.js' // 使用部署配置选择只读 API。
 import './style.css'                 // 看板在电脑和手机上共用同一套布局。
 
 // --- 页面数据 ---
@@ -14,19 +15,7 @@ const elements = Object.fromEntries( // 所有可变区域集中列出，便于�
 
 const linkTopic = 'classroom/demo/ec200u/link_test'  // 已经由 EC200U 和在线调试页实测的主题。
 const ecsSite = import.meta.env.MODE === 'ecs'       // ECS 构建使用同源历史 API；Pages 构建优先使用只读 HTTPS API。
-function resolvePublicApiUrl() {
-  const query = new URLSearchParams(location.search).get('api')?.trim()
-  // GitHub Pages 的标准构建直接读取公开 API，避免换电脑构建时丢失网页数据源。
-  const pagesApiUrl = location.hostname === 'confidence-huang.github.io'
-    ? 'https://api.careerpathdesk.com'
-    : ''
-  const raw = query || (import.meta.env.VITE_PUBLIC_API_URL || pagesApiUrl).trim()
-  if (!raw) return ''
-  const normalized = raw.replace(/\/$/, '')
-  if (normalized.startsWith('https://')) return normalized
-  if (location.hostname === '127.0.0.1' && normalized.startsWith('http://127.0.0.1')) return normalized
-  return ''
-}
+const publicApiUrl = ecsSite ? '' : publicApiBase(location.href, import.meta.env.VITE_PUBLIC_API_URL)
 // The public page links to the separate authenticated operator console when provisioned.
 const operatorUrl = (import.meta.env.VITE_CONTROL_DASHBOARD_URL || '').trim()
 if (URL.canParse(operatorUrl)) {
@@ -38,7 +27,6 @@ if (URL.canParse(operatorUrl)) {
     link.hidden = false
   }
 }
-const publicApiUrl = ecsSite ? '' : resolvePublicApiUrl()
 const publicApiMode = !ecsSite && Boolean(publicApiUrl)
 const readings = {                            // 约定草案；队长确认数据字段后只改这里。
   people_count: 'people-count',                // K230 识别出的当前人数。
