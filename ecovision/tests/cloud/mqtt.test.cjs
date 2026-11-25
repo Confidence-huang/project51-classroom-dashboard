@@ -104,6 +104,32 @@ test('TLS MQTT telemetry, independent identity ACL, Node-RED HTTP/socket authent
   assert.equal(offAck.fan_level,0);
   assert.equal(offAck.led_out,0);
 
+  // An isolated AC-capable simulator exercises the same dashboard event and broker topics.
+  const acDevice=await mqtt.connectAsync(config.mqtt.url,{ca:cert.cert,username:'sim002',password:samplePassword,
+    reconnectPeriod:0,protocolVersion:4,clean:true});
+  cleanups.push(()=>acDevice.endAsync(true));
+  const [grant]=await acDevice.subscribeAsync('ecovision/sim002/cmd',{qos:1});
+  assert.equal(grant.qos,1);
+  const acTelemetry={...observed,device_id:'sim002',boot_id:'acdef123',seq:1,control_epoch:0,
+    ts:Math.floor(Date.now()/1000),mode:'AUTO',hold_remaining_s:0,v:'1.2.0'};
+  await acDevice.publishAsync('ecovision/sim002/telemetry',JSON.stringify(acTelemetry),{qos:1});
+  await until(()=>app.bridge.cloud.view().devices[1].ac_control_available);
+  let remoteAc;
+  acDevice.on('message',(topic,bytes,packet)=>{
+    if (!packet.retain) remoteAc=JSON.parse(bytes);
+  });
+  for (const temperature of [23,0]) {
+    socket.emit('widget-send','eco-widget',{payload:{device_id:'sim002',
+      observed:{boot_id:acTelemetry.boot_id,control_epoch:0},intent:{ac_temp_c:temperature}}});
+    await until(()=>remoteAc?.ac_temp_c===temperature);
+    assert.equal(remoteAc.fan_out,undefined);
+    const ack={v:remoteAc.v,device_id:'sim002',cmd_id:remoteAc.cmd_id,boot_id:remoteAc.boot_id,
+      control_epoch:0,status:'AC_ACCEPTED',reason:'OK',received_at:acTelemetry.ts,uptime_ms:1,ac_temp_c:temperature};
+    await acDevice.publishAsync('ecovision/sim002/ack',JSON.stringify(ack),{qos:1});
+    await until(()=>app.bridge.cloud.view().commands[0].state==='AC_ACCEPTED');
+    assert.equal(app.bridge.cloud.view().commands[0].command.ac_temp_c,temperature);
+  }
+
   const other=mqtt.connect(config.mqtt.url,{ca:cert.cert,username:'sim001',password:devicePassword,reconnectPeriod:0,protocolVersion:4,clean:true});other.on('error',()=>{});cleanups.push(()=>other.endAsync(true));
   await new Promise(resolve=>other.once('connect',resolve));
   const granted=await other.subscribeAsync('ecovision/ev002/cmd',{qos:1}).catch(()=>[]);

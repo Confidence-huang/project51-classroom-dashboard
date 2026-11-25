@@ -158,3 +158,30 @@ test('rejects the old operator context after B1 release or reboot, including AUT
   assert.equal(c.view().commands.length, 0);
   assert.equal(c.command('ev001', auto, rebooted).boot_id, rebooted.boot_id);
 });
+
+test('demo AC commands require capability and match the module acknowledgement', () => {
+  const { c, command, send, telemetry } = setup();
+  assert.throws(() => command({ ac_temp_c: 26 }), /AC_UNAVAILABLE/);
+  const capable = { ...telemetry, v: '1.2.0', seq: 2, fan_out: 1, fan_level: 2 };
+  assert.equal(send('telemetry', capable), true);
+  assert.equal(c.view().devices[0].ac_control_available, true);
+  assert.throws(() => command({ ac_temp_c: 15 }), /SCHEMA/);
+  assert.throws(() => command({ ac_temp_c: 31 }), /SCHEMA/);
+  assert.throws(() => command({ ac_temp_c: 24.5 }), /SCHEMA/);
+  assert.throws(() => command({ ac_temp_c: 26, fan_level: 3 }), /INTENT/);
+  const on = command({ ac_temp_c: 16 });
+  assert.equal(on.v, '1.2.0');
+  assert.equal(on.fan_out, undefined);
+  assert.equal(command({ mode: 'REMOTE', fan_out: 1, led_out: 0, fan_level: 5 }).v, '1.1.0');
+  const reply = { v: on.v, device_id: on.device_id, cmd_id: on.cmd_id, boot_id: on.boot_id, control_epoch: on.control_epoch,
+    status: 'AC_ACCEPTED', reason: 'OK', received_at: 1000, uptime_ms: 1, ac_temp_c: 16 };
+  assert.equal(send('ack', { ...reply, ac_temp_c: 30 }), false);
+  assert.equal(send('ack', { ...reply, status: 'APPLIED' }), false);
+  assert.equal(send('ack', reply), true);
+  assert.equal(c.view().commands.find(r => r.command.cmd_id === on.cmd_id).state, 'AC_ACCEPTED');
+  const off = command({ ac_temp_c: 0 });
+  assert.equal(send('ack', { ...reply, cmd_id: off.cmd_id, ac_temp_c: 0, status: 'AC_UNKNOWN', reason: 'AC_UNCONFIRMED' }), true);
+  assert.equal(c.view().commands[0].state, 'AC_UNKNOWN');
+  assert.equal(send('telemetry', { ...capable, seq: 3, mode: 'LOCAL_OFF', fan_out: 0, fan_level: 0, led_out: 0 }), true);
+  assert.throws(() => command({ ac_temp_c: 26 }), /CONTROL_DISABLED/);
+});
