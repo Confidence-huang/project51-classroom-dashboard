@@ -34,3 +34,7 @@ jobs:
           npm test --prefix ecovision/cloud
       - name: Verify production build
         run: npm run build -- --outDir "$RUNNER_TEMP/smart-classroom-web"
+      - name: Verify offline sandbox and telemetry contract
+        run: |
+          node --test ecovision/tests/sandbox/model.test.mjs
+          python3 -B -m unittest discover -s ecovision/tests/sandbox -p 'test_*.py' -v
