@@ -31,6 +31,8 @@ const apiOnly = process.env.HISTORY_API_ONLY === '1'
 const trustCloudflare = process.env.AGENT_TRUST_CF_CONNECTING_IP === '1' // Enable only behind a trusted local Cloudflare tunnel.
 mkdirSync(resolve(file, '..'), { recursive: true })
 const db = new DatabaseSync(file)
+// Keep history readable during ingest and allow brief contention from another SQLite connection.
+db.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 3000;')
 db.exec(`CREATE TABLE IF NOT EXISTS telemetry_v2 (
   device_id TEXT NOT NULL, seq INTEGER NOT NULL, room_id TEXT NOT NULL,
   captured_at TEXT NOT NULL, received_at TEXT NOT NULL, simulated INTEGER NOT NULL,
@@ -38,6 +40,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS telemetry_v2 (
   humidity_pct REAL NOT NULL, light_lux REAL, light_raw_u16 INTEGER,
   PRIMARY KEY(device_id, seq)
 )`)
+db.exec('CREATE INDEX IF NOT EXISTS telemetry_v2_simulated_recency ON telemetry_v2 (simulated, received_at DESC, seq DESC)')
 // 旧表限制人数和 lx 必填；新表允许尚未接入 K230 与未标定的光敏原码。
 // 复制旧数据但保留原表，已有本机历史不会被迁移操作删除。
 const legacy = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry'").get()
@@ -77,7 +80,7 @@ client.on('message', (receivedTopic, bytes) => {
 })
 
 // --- 本地网站同源读取历史；路径固定，避免任意读文件 ---
-createServer(async (request, response) => {
+const server = createServer(async (request, response) => {
   try {
     const path = new URL(request.url, 'http://localhost').pathname
     if (path === '/api/telemetry') {
@@ -122,3 +125,13 @@ createServer(async (request, response) => {
     }
   }
 }).listen(historyPort, '127.0.0.1', () => console.log(`SITE_READY http://127.0.0.1:${historyPort}/`))
+
+// Stop MQTT ingestion first, then close SQLite once existing HTTP requests finish.
+function shutdown() {
+  process.off('SIGINT', shutdown)
+  process.off('SIGTERM', shutdown)
+  client.end(true)
+  server.close(() => db.close())
+}
+process.on('SIGINT', shutdown)
+process.on('SIGTERM', shutdown)
