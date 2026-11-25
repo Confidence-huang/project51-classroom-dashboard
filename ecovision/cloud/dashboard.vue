@@ -49,7 +49,9 @@
           </label>
           <button type="submit">开机 / 应用温度</button>
           <button type="button" @click="request(d, { ac_temp_c: 0 })">关机</button>
+          <button type="button" @click="request(d, { mode: 'AUTO' })">恢复自动模式</button>
         </fieldset>
+        <p>恢复自动模式同时解除灯扇和模拟空调的手动设置。</p>
       </form>
       <p v-if="waiting(d.device_id)">PENDING · 待终端确认，尚不能认定执行成功</p>
       <p v-if="d.telemetry && d.telemetry.mode === 'LOCAL_OFF'">终端本地关闭锁定，请在设备上短按解除。</p>
