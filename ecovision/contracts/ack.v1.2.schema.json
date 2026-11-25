@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ecovision:1.2.0:ack",
+  "title": "ack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "device_id",
+    "boot_id",
+    "cmd_id",
+    "status",
+    "reason",
+    "received_at",
+    "uptime_ms",
+    "control_epoch",
+    "ac_temp_c"
+  ],
+  "properties": {
+    "v": {
+      "const": "1.2.0"
+    },
+    "device_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$"
+    },
+    "boot_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{8,32}$"
+    },
+    "cmd_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "status": {
+      "enum": [
+        "AC_ACCEPTED",
+        "AC_UNKNOWN",
+        "REJECTED"
+      ]
+    },
+    "reason": {
+      "enum": [
+        "OK",
+        "INVALID_MESSAGE",
+        "UNSUPPORTED_VERSION",
+        "RETAINED_COMMAND",
+        "BOOT_MISMATCH",
+        "CMD_ID_CONFLICT",
+        "TIME_UNTRUSTED",
+        "FUTURE_COMMAND",
+        "EXPIRED",
+        "EPOCH_MISMATCH",
+        "LOCAL_LOCKED",
+        "BUSY",
+        "AC_UNAVAILABLE",
+        "AC_MODULE_REJECTED",
+        "AC_UNCONFIRMED"
+      ]
+    },
+    "received_at": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "uptime_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "control_epoch": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "ac_temp_c": {
+      "description": "Absolute demo setting: 0 is off, 16\u201330 requests on at that temperature.",
+      "anyOf": [
+        {
+          "const": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 30
+        }
+      ]
+    }
+  }
+}

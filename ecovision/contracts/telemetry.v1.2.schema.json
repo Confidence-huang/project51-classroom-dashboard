@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ecovision:1.2.0:telemetry",
+  "title": "telemetry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "device_id",
+    "boot_id",
+    "seq",
+    "uptime_ms",
+    "ts",
+    "time_valid",
+    "control_epoch",
+    "count",
+    "vision_valid",
+    "vision_age_ms",
+    "temp_c",
+    "temp_valid",
+    "temp_age_ms",
+    "humidity_pct",
+    "humidity_valid",
+    "occupancy",
+    "mode",
+    "fan_out",
+    "led_out",
+    "hold_remaining_s",
+    "net_state",
+    "last_cmd_id",
+    "faults",
+    "fan_level"
+  ],
+  "properties": {
+    "v": {
+      "const": "1.2.0"
+    },
+    "device_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$"
+    },
+    "boot_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{8,32}$"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "uptime_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "ts": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "time_valid": {
+      "type": "boolean"
+    },
+    "control_epoch": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "count": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "vision_valid": {
+      "type": "boolean"
+    },
+    "vision_age_ms": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "temp_c": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": -40,
+          "maximum": 85
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "temp_valid": {
+      "type": "boolean"
+    },
+    "temp_age_ms": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "humidity_pct": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "humidity_valid": {
+      "type": "boolean"
+    },
+    "occupancy": {
+      "enum": [
+        "OCCUPIED",
+        "VACANT",
+        "UNKNOWN"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "AUTO",
+        "REMOTE",
+        "LOCAL_OFF"
+      ]
+    },
+    "fan_out": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "led_out": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "hold_remaining_s": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 300
+    },
+    "net_state": {
+      "enum": [
+        "ONLINE",
+        "OFFLINE",
+        "CONNECTING"
+      ]
+    },
+    "last_cmd_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "faults": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "VISION_FAULT",
+          "SENSOR_FAULT",
+          "NET_OFFLINE"
+        ]
+      },
+      "uniqueItems": true,
+      "maxItems": 3
+    },
+    "fan_level": {
+      "description": "Absolute fan setting. 0 is off, 1 through 5 are PWM levels.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5
+    }
+  },
+  "dependentSchemas": {
+    "fan_level": {
+      "anyOf": [
+        {
+          "properties": {
+            "fan_level": {
+              "const": 0
+            },
+            "fan_out": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "fan_level": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fan_out": {
+              "const": 1
+            }
+          }
+        }
+      ]
+    }
+  }
+}

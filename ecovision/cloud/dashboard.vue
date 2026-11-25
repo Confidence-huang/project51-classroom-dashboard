@@ -39,6 +39,18 @@
         </fieldset>
         <p>手动设置保持 {{ msg.payload.hold_default_s }} 秒，到期恢复自动模式。</p>
       </form>
+      <form class="ac" v-if="d.ac_control_available" @submit.prevent="applyAc(d, $event)">
+        <fieldset :disabled="!d.can_control || !socketReady() || stale(d) || waiting(d.device_id)">
+          <legend>模拟空调</legend>
+          <label>设定温度
+            <select name="acTemp" :value="selection(d, 'acTemp') ?? acDefault(d)" @change="select(d, 'acTemp', $event)">
+              <option v-for="offset in acTemperatureCount()" :key="offset" :value="msg.payload.ac_temperature.minimum + offset - 1">{{ msg.payload.ac_temperature.minimum + offset - 1 }} °C</option>
+            </select>
+          </label>
+          <button type="submit">开机 / 应用温度</button>
+          <button type="button" @click="request(d, { ac_temp_c: 0 })">关机</button>
+        </fieldset>
+      </form>
       <p v-if="waiting(d.device_id)">PENDING · 待终端确认，尚不能认定执行成功</p>
       <p v-if="d.telemetry && d.telemetry.mode === 'LOCAL_OFF'">终端本地关闭锁定，请在设备上短按解除。</p>
     </article>
@@ -46,7 +58,7 @@
     <div class="history"><table><thead><tr><th>命令 ID / 设备</th><th>请求</th><th>结果</th></tr></thead>
       <tbody><tr v-for="r in msg.payload.commands.slice(0, 20)" :key="r.command.cmd_id">
         <td>{{ r.command.cmd_id }}<br>{{ r.command.device_id }}</td>
-        <td>{{ r.command.mode === 'AUTO' ? '恢复自动' : '风扇 ' + fanLabel(r.command) + ' / 灯环 ' + lampLabel(r.command.led_out) }}</td>
+        <td>{{ requestLabel(r.command) }}</td>
         <td>{{ label(effectiveState(r)) }} {{ r.reason || '' }} {{ r.late ? '（迟到 ACK）' : '' }}</td>
       </tr></tbody></table></div>
   </section>
@@ -61,7 +73,7 @@ export default {
     socketReady() { return this.$socket && this.$socket.connected },
     effectiveState(r) { return r.state === 'PENDING' && Math.max(0, this.tick - this.received) >= r.ack_remaining_ms ? 'TIMEOUT' : r.state },
     stale(d) { return d.age_ms === null || d.age_ms + Math.max(0, this.tick - this.received) >= 15000 },
-    label(s) { return ({PENDING:'PENDING · 待确认', APPLIED:'APPLIED · 已确认', REJECTED:'REJECTED · 终端拒绝', TIMEOUT:'TIMEOUT · 结果未知'})[s] || s },
+    label(s) { return ({PENDING:'PENDING · 待确认', APPLIED:'APPLIED · 已确认', AC_ACCEPTED:'学习模块已应答 · 请核对 F103 屏幕', AC_UNKNOWN:'红外发送结果未知', REJECTED:'REJECTED · 终端拒绝', TIMEOUT:'TIMEOUT · 结果未知'})[s] || s },
     waiting(id) { return this.tick - (this.submitting[id] ?? -10000) < 1500 || this.msg.payload.commands.some(r => r.command.device_id === id && this.effectiveState(r) === 'PENDING') },
     fanLabel(setting) {
       if (setting.fan_level !== undefined) return setting.fan_level ? setting.fan_level + ' 档' : '关闭'
@@ -78,6 +90,22 @@ export default {
       const { boot_id: boot, control_epoch: epoch } = device.telemetry
       const previous = draft?.boot === boot && draft.epoch === epoch ? draft : { boot, epoch }
       this.drafts[device.device_id] = { ...previous, [field]: Number(event.target.value) }
+    },
+    acDefault(device) {
+      const last = this.msg.payload.commands.find(r => r.command.device_id === device.device_id &&
+        r.command.boot_id === device.telemetry.boot_id && r.state === 'AC_ACCEPTED' && r.command.ac_temp_c > 0)
+      return last?.command.ac_temp_c ?? 26
+    },
+    acTemperatureCount() {
+      const { minimum, maximum } = this.msg.payload.ac_temperature
+      return maximum - minimum + 1
+    },
+    applyAc(device, event) {
+      this.request(device, { ac_temp_c: Number(new FormData(event.currentTarget).get('acTemp')) })
+    },
+    requestLabel(command) {
+      if (command.ac_temp_c !== undefined) return command.ac_temp_c ? '模拟空调开机 / ' + command.ac_temp_c + ' °C' : '模拟空调关机'
+      return command.mode === 'AUTO' ? '恢复自动' : '风扇 ' + this.fanLabel(command) + ' / 灯环 ' + this.lampLabel(command.led_out)
     },
     apply(device, event) {
       // Submit both absolute settings together so each request has a single device ACK.
@@ -110,5 +138,6 @@ export default {
 .eco fieldset label { display:flex; align-items:center; gap:8px }
 .eco select { font:inherit; color:inherit; background:white; border:1px solid #729b8b; border-radius:5px; padding:8px }
 .eco fieldset:disabled { opacity:.45 }
+.eco .ac { margin-top:12px }
 .eco .history { overflow:auto } .eco table { width:100%; border-collapse:collapse } .eco td,.eco th { border-bottom:1px solid #bbcfc5; padding:10px; text-align:left; overflow-wrap:anywhere }
 </style>
