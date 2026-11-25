@@ -53,6 +53,7 @@
         </fieldset>
         <p>恢复自动模式同时解除灯扇和模拟空调的手动设置。</p>
       </form>
+      <p v-else-if="d.telemetry && d.telemetry.fan_level !== undefined" class="ac">模拟空调暂不可用。设备尚未上报此能力。</p>
       <p v-if="waiting(d.device_id)">PENDING · 待终端确认，尚不能认定执行成功</p>
       <p v-if="d.telemetry && d.telemetry.mode === 'LOCAL_OFF'">终端本地关闭锁定，请在设备上短按解除。</p>
     </article>
