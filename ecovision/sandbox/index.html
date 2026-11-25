@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EcoVision · 绿智微视沙盒</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><div><span class="eyebrow">ECOVISION / 绿智微视</span><h1>让房间的状态，一目了然。</h1><p>二维原型实验室 · 人员感知与低压负载控制</p></div><span id="source" class="badge">模拟模式 · 非硬件反馈</span></header>
+<main>
+<section class="toolbar"><label>数据来源 <select id="sourceMode"><option value="sim">模拟模式</option><option value="real">实物模式（待对接）</option></select></label><span id="clock">虚拟时间 0 s</span><span id="network">模拟网络在线</span></section>
+<div class="layout">
+<section class="scene-card"><div class="section-title"><h2>微型教室</h2><span id="mode">AUTO / 自动</span></div>
+<div id="room" class="room" aria-label="二维教室场景"><div class="board">EcoVision <small>感知 · 控制 · 连接</small></div><div class="windows"><i></i><i></i><i></i></div><div id="lamp" class="lamp">✦ <span>LED</span></div><div id="fan" class="fan"><span class="rotor">✣</span><small>5V 风扇</small></div><div id="people" class="people"></div><div class="room-label">固定视场 · 0—5 人演示</div></div>
+<div class="metrics"><article><span>视觉人数</span><strong id="countValue">—</strong></article><article><span>温度</span><strong id="tempValue">—</strong></article><article><span>风扇输出</span><strong id="fanValue">—</strong></article><article><span>LED输出</span><strong id="ledValue">—</strong></article></div>
+<p id="state" role="status" aria-live="polite"></p><p class="hint">输出显示驱动逻辑，不代表风扇机械旋转。模拟网络在线不代表真实4G已连接。</p></section>
+<aside><section class="panel"><h2>场景注入</h2><fieldset id="injection"><label>人数 <output id="countInput">0 人</output><input id="count" type="range" min="0" max="5" step="1" value="0"></label><label>温度 <output id="tempInput">26.0 ℃</output><input id="temp" type="range" min="15" max="40" step="0.5" value="26"></label><label class="check"><input id="vision" type="checkbox" checked>视觉心跳正常</label><label class="check"><input id="net" type="checkbox" checked>模拟网络在线</label><div class="buttons"><button id="play">开始运行</button><button id="step">+1 秒</button><button id="skip">+30 秒</button></div><button id="reset" class="secondary">重置场景</button></fieldset><p class="hint">3帧确认有人；无人30秒；28℃开 / 27℃关，温度持续5秒。视觉超时5秒，关键故障持续60秒关闭输出。</p></section>
+<section class="panel"><h2>演示场景</h2><fieldset id="scenarios"><select id="preset" aria-label="预设场景"><option value="warm">有人进入 · 升温开风扇</option><option value="vacant">人员离开 · 延迟关闭</option><option value="fault">视觉掉线 · 故障关闭</option><option value="offline">断网 · 本地控制继续</option></select><button id="loadPreset" class="secondary">复现预设</button><div class="buttons"><button id="save" class="secondary">保存 JSON</button><label class="file-button">导入复现<input type="file" id="import" accept="application/json,.json"></label></div></fieldset><p class="hint">场景使用确定性虚拟时间。导入只用于模拟，不可作为实测记录。</p></section></aside>
+</div>
+<details><summary>统一遥测快照 · 契约 1.0.0</summary><pre id="json"></pre></details>
+<p id="error" role="alert"></p><footer>EcoVision 最小原型 · K230 / STM32 / EC200U · 仅本地演示</footer>
+</main><script type="module" src="src/app.mjs"></script></body></html>

@@ -1,0 +1,512 @@
+{
+  "version": "1.0.0",
+  "fixture_now": 1794657600,
+  "initial": {
+    "device_id": "ev001",
+    "boot_id": "0000000000000001",
+    "control_epoch": 0,
+    "mode": "AUTO",
+    "time_valid": true,
+    "fan_out": 0,
+    "led_out": 0
+  },
+  "scenarios": [
+    {
+      "name": "normal",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600
+        }
+      ],
+      "expect": {
+        "reason": "OK",
+        "executions": 1,
+        "mode": "REMOTE",
+        "lease_started_at": 1794657600
+      }
+    },
+    {
+      "name": "invalid",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 301
+          },
+          "now": 1794657600
+        }
+      ],
+      "expect": {
+        "reason": "INVALID_MESSAGE",
+        "executions": 0
+      }
+    },
+    {
+      "name": "expired_at_boundary",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657615
+        }
+      ],
+      "expect": {
+        "reason": "EXPIRED",
+        "executions": 0
+      }
+    },
+    {
+      "name": "future",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657599
+        }
+      ],
+      "expect": {
+        "reason": "FUTURE_COMMAND",
+        "executions": 0
+      }
+    },
+    {
+      "name": "duplicate",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600
+        },
+        {
+          "event": "receive",
+          "command": {
+            "hold_s": 120,
+            "led_out": 1,
+            "fan_out": 1,
+            "mode": "REMOTE",
+            "ttl_s": 15,
+            "issued_at": 1794657600,
+            "cmd_id": "demo-001",
+            "control_epoch": 0,
+            "boot_id": "0000000000000001",
+            "device_id": "ev001",
+            "v": "1.0.0"
+          },
+          "now": 1794657602
+        }
+      ],
+      "expect": {
+        "reason": "OK",
+        "executions": 1,
+        "ack_replayed": true,
+        "lease_started_at": 1794657600
+      }
+    },
+    {
+      "name": "duplicate_after_expiry",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600
+        },
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657616,
+          "cache_present": true
+        }
+      ],
+      "expect": {
+        "reason": "OK",
+        "executions": 1,
+        "ack_replayed": true,
+        "lease_started_at": 1794657600
+      }
+    },
+    {
+      "name": "id_conflict",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600
+        },
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 0,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657601
+        }
+      ],
+      "expect": {
+        "reason": "CMD_ID_CONFLICT",
+        "executions": 1
+      }
+    },
+    {
+      "name": "old_boot",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000000",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600
+        }
+      ],
+      "expect": {
+        "reason": "BOOT_MISMATCH",
+        "executions": 0
+      }
+    },
+    {
+      "name": "old_epoch",
+      "steps": [
+        {
+          "event": "local_auto",
+          "control_epoch": 1
+        },
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600
+        }
+      ],
+      "expect": {
+        "reason": "EPOCH_MISMATCH",
+        "executions": 0
+      }
+    },
+    {
+      "name": "local_lock",
+      "steps": [
+        {
+          "event": "local_off",
+          "control_epoch": 1
+        },
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 1,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600
+        }
+      ],
+      "expect": {
+        "reason": "LOCAL_LOCKED",
+        "executions": 0,
+        "mode": "LOCAL_OFF"
+      }
+    },
+    {
+      "name": "untrusted_time",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600,
+          "time_valid": false
+        }
+      ],
+      "expect": {
+        "reason": "TIME_UNTRUSTED",
+        "executions": 0
+      }
+    },
+    {
+      "name": "retained",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600,
+          "retain": true
+        }
+      ],
+      "expect": {
+        "reason": "RETAINED_COMMAND",
+        "executions": 0
+      }
+    },
+    {
+      "name": "cache_full",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600,
+          "unexpired_cache_entries": 32
+        }
+      ],
+      "expect": {
+        "reason": "BUSY",
+        "executions": 0
+      }
+    },
+    {
+      "name": "network_loss",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600
+        },
+        {
+          "event": "network_offline",
+          "at": 1794657602
+        },
+        {
+          "event": "advance",
+          "now": 1794657720
+        },
+        {
+          "event": "network_online",
+          "at": 1794658200
+        }
+      ],
+      "expect": {
+        "executions": 1,
+        "mode": "AUTO",
+        "local_control_continues": true,
+        "replay_queued_commands": false
+      }
+    },
+    {
+      "name": "duplicate_after_button",
+      "steps": [
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657600
+        },
+        {
+          "event": "local_off",
+          "control_epoch": 1
+        },
+        {
+          "event": "receive",
+          "command": {
+            "v": "1.0.0",
+            "device_id": "ev001",
+            "boot_id": "0000000000000001",
+            "control_epoch": 0,
+            "cmd_id": "demo-001",
+            "issued_at": 1794657600,
+            "ttl_s": 15,
+            "mode": "REMOTE",
+            "fan_out": 1,
+            "led_out": 1,
+            "hold_s": 120
+          },
+          "now": 1794657602
+        }
+      ],
+      "expect": {
+        "reason": "OK",
+        "executions": 1,
+        "ack_replayed": true,
+        "mode": "LOCAL_OFF"
+      }
+    }
+  ]
+}

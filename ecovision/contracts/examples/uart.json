@@ -1,0 +1,67 @@
+{
+  "crc_check": {
+    "input": "123456789",
+    "expected": "29B1"
+  },
+  "frames": [
+    {
+      "name": "query",
+      "wire": "$EVQ,000000000000000a*396F\r\n",
+      "valid_frame": true
+    },
+    {
+      "name": "hello",
+      "wire": "$EVH,000000000000000a,000000000000000b*3661\r\n",
+      "valid_frame": true
+    },
+    {
+      "name": "normal",
+      "wire": "$EV1,000000000000000a,000000000000000b,1,1000,2,1*1952\r\n",
+      "valid_frame": true
+    },
+    {
+      "name": "invalid_detection",
+      "wire": "$EV1,000000000000000a,000000000000000b,2,2000,0,0*1EA9\r\n",
+      "valid_frame": true
+    },
+    {
+      "name": "range_error",
+      "wire": "$EV1,000000000000000a,000000000000000b,3,3000,21,1*E5A3\r\n",
+      "valid_frame": false
+    },
+    {
+      "name": "legacy_candidate",
+      "wire": "$EV1,1,1000,2,1*D9BA\r\n",
+      "valid_frame": false
+    },
+    {
+      "name": "bad_crc",
+      "wire": "$EV1,000000000000000a,000000000000000b,1,1000,2,1*0000\r\n",
+      "valid_frame": false
+    }
+  ],
+  "stream_cases": [
+    {
+      "name": "fragmented",
+      "chunks": [
+        "$EV1,00",
+        "0000000000000a,000000000000000b,1,1000,2,1*1952\r\n"
+      ],
+      "accepted": 1
+    },
+    {
+      "name": "concatenated",
+      "chunks": [
+        "$EV1,000000000000000a,000000000000000b,1,1000,2,1*1952\r\n$EV1,000000000000000a,000000000000000b,2,2000,0,0*1EA9\r\n"
+      ],
+      "accepted": 2
+    },
+    {
+      "name": "overlength",
+      "chunks": [
+        "$XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\r\n$EV1,000000000000000a,000000000000000b,1,1000,2,1*1952\r\n"
+      ],
+      "accepted": 1
+    }
+  ]
+}
