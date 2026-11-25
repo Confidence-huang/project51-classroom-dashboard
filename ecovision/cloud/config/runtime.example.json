@@ -1,0 +1,19 @@
+{
+  "port": 1880,
+  "runtime": "D:/EcoVision-private-runtime",
+  "viewer_user": "operator",
+  "viewer_password": "",
+  "public_origin": null,
+  "monitor": {
+    "device_id": "ev001",
+    "token": ""
+  },
+  "mqtt": {
+    "url": "mqtts://broker.example.invalid:8883",
+    "ca": "D:/EcoVision-secrets/broker-ca.pem",
+    "username": "cloud-service",
+    "password": "",
+    "devices": ["ev001"],
+    "simulated": []
+  }
+}

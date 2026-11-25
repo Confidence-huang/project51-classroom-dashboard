@@ -1,0 +1,8 @@
+node_modules/
+.runtime/
+.secrets/
+*.local.json
+*.log
+.config*.json
+lib/
+.playwright-cli/
