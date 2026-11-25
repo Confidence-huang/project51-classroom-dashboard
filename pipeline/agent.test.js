@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { createServer } from 'node:http'
 import { DatabaseSync } from 'node:sqlite'
-import { createAgentHandler, handleAgentRoute } from './agent.js'
+import { createAgentHandler, extractClientIp, handleAgentRoute } from './agent.js'
 import { parseAllowedOrigins } from './http-policy.js'
 
 function createSeededDb(nowMs) {
@@ -215,6 +215,15 @@ test('未配置 Key 时返回 503 且状态接口优雅提示不报错', async (
   }
 })
 
+test('代理客户端地址只接受可信回环代理提供的有效 IP', () => {
+  const headers = { 'cf-connecting-ip': '198.51.100.11', 'x-forwarded-for': '198.51.100.22' }
+  const local = { headers, socket: { remoteAddress: '127.0.0.1' } }
+  assert.equal(extractClientIp(local), '127.0.0.1')
+  assert.equal(extractClientIp(local, true), '198.51.100.11')
+  assert.equal(extractClientIp({ ...local, headers: { ...headers, 'cf-connecting-ip': 'invalid' } }, true), '127.0.0.1')
+  assert.equal(extractClientIp({ ...local, socket: { remoteAddress: '192.0.2.10' } }, true), '192.0.2.10')
+})
+
 test('HTTP 路由强制校验 Origin、方法、Body 上限与按 CF-Connecting-IP 限流', async () => {
   const nowMs = Date.parse('2026-11-18T13:30:00.000Z')
   const db = createSeededDb(nowMs)
@@ -245,7 +254,7 @@ test('HTTP 路由强制校验 Origin、方法、Body 上限与按 CF-Connecting-
   const allowed = parseAllowedOrigins('https://confidence-huang.github.io')
   const api = await startServer(async (req, res) => {
     const path = new URL(req.url, 'http://localhost').pathname
-    const handled = await handleAgentRoute(req, res, { path, agent, allowedOrigins: allowed })
+    const handled = await handleAgentRoute(req, res, { path, agent, allowedOrigins: allowed, trustCloudflare: true })
     if (!handled) { res.writeHead(404); res.end('Not found') }
   })
 

@@ -14,6 +14,10 @@
 
 ## 数据约定
 
+AI 助手默认用连接端 IP 限流。只有服务入口由受信任的本机 Cloudflare 隧道代理，并确认代理接管 `CF-Connecting-IP` 时，才在服务端设置 `AGENT_TRUST_CF_CONNECTING_IP=1`。
+
+历史服务默认将 SQLite 放在 systemd 的可写状态目录 `/var/lib/project51-classroom/telemetry.sqlite`。更新现有服务前，先核对 `history.env` 与正在使用的数据库路径。已有设置优先于 unit 默认值，数据库如需迁移，先停服务并备份，再核对新路径的历史条数。
+
 - 已验证测试主题：`classroom/demo/ec200u/link_test`，消息 `type` 为 `link_test`。只更新链路测试区，不修改传感器读数。
 - 在同一主题从 EMQX 在线调试页发送 `type: manual_test` 时，网页会显示“手动测试已收到”，明确说明这只验证云端到网页，没有经过 EC200U 4G。
 - 已用于板端实测的主题为 `classroom/room01/telemetry`，可在连接弹窗修改。只有这个主题中 `type` 为 `telemetry` 的 JSON 消息才会刷新测量值。

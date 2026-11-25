@@ -9,14 +9,19 @@
     "history": "node pipeline/history.js",
     "test:contract": "node --test pipeline/telemetry.test.js",
     "test:agent": "node --test pipeline/agent.test.js",
-    "test": "node --test pipeline/telemetry.test.js pipeline/agent.test.js"
+    "test": "node --test pipeline/telemetry.test.js pipeline/agent.test.js src/public-api.test.js src/telemetry-time.test.js"
   },
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "mqtt": "^5.16.1",
-    "vite": "^8.3.7"
+    "mqtt": "^5.16.1"
   },
   "private": true,
-  "description": "移远杯智慧教室实时看板"
+  "description": "移远杯智慧教室实时看板",
+  "devDependencies": {
+    "vite": "^8.3.7"
+  },
+  "engines": {
+    "node": ">=24"
+  }
 }

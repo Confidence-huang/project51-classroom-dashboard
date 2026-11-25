@@ -10,6 +10,8 @@ Type=simple
 User=project51deploy
 Group=project51deploy
 WorkingDirectory=/home/project51deploy/apps/classroom-history
+# systemd grants the service write access to this StateDirectory under ProtectSystem=strict.
+Environment=HISTORY_DB=/var/lib/project51-classroom/telemetry.sqlite
 EnvironmentFile=/etc/project51-classroom/history.env
 ExecStart=/opt/project51-classroom/node-v26.13.1/bin/node /home/project51deploy/apps/classroom-history/pipeline/history.js
 Restart=on-failure
