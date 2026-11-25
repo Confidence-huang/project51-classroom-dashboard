@@ -28,6 +28,7 @@ const file = process.env.HISTORY_DB || join(here, 'telemetry.sqlite')
 const historyPort = Number(process.env.HISTORY_PORT || 8899) // 避开本机 8733–8832 的 Windows 保留端口段。
 const allowedOrigins = parseAllowedOrigins(process.env.CORS_ALLOW_ORIGIN)
 const apiOnly = process.env.HISTORY_API_ONLY === '1'
+const trustCloudflare = process.env.AGENT_TRUST_CF_CONNECTING_IP === '1' // Enable only behind a trusted local Cloudflare tunnel.
 mkdirSync(resolve(file, '..'), { recursive: true })
 const db = new DatabaseSync(file)
 db.exec(`CREATE TABLE IF NOT EXISTS telemetry_v2 (
@@ -96,7 +97,7 @@ createServer(async (request, response) => {
       response.end(JSON.stringify({ broker_connected: connected, topic, latest: rows[0] || null, history: rows }))
       return
     }
-    if (await handleAgentRoute(request, response, { path, agent, allowedOrigins })) return
+    if (await handleAgentRoute(request, response, { path, agent, allowedOrigins, trustCloudflare })) return
     if (apiOnly) {
       response.writeHead(404)
       response.end('Not found')

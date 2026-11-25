@@ -4,6 +4,7 @@
 通过只读 SQLite Tool-Calling 查询真实遥测与统计趋势，并强制防编造边界与三层防刷限流。
 */
 import { corsHeaders, isOriginAllowed } from './http-policy.js'
+import { isIP } from 'node:net'
 
 const MAX_BODY_BYTES = 4096
 const MAX_QUESTION_CHARS = 300
@@ -146,13 +147,12 @@ function isLoopbackAddress(address = '') {
   return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
 }
 
-export function extractClientIp(request) {
+export function extractClientIp(request, trustCloudflare = false) {
   const remote = request.socket?.remoteAddress || 'unknown'
-  if (isLoopbackAddress(remote)) {
+  // Only an explicitly trusted local tunnel can supply a verified client address.
+  if (trustCloudflare && isLoopbackAddress(remote)) {
     const cfIp = String(request.headers['cf-connecting-ip'] || '').trim()
-    if (cfIp) return cfIp
-    const xff = String(request.headers['x-forwarded-for'] || '').split(',')[0].trim()
-    if (xff) return xff
+    if (isIP(cfIp)) return cfIp
   }
   return remote
 }
@@ -741,7 +741,7 @@ function writeJson(response, status, headers, payload) {
   response.end(JSON.stringify(payload))
 }
 
-export async function handleAgentRoute(request, response, { path, agent, allowedOrigins }) {
+export async function handleAgentRoute(request, response, { path, agent, allowedOrigins, trustCloudflare = false }) {
   if (path === '/api/agent/status') {
     const cors = corsHeaders(request.headers.origin, allowedOrigins, 'GET, OPTIONS')
     if (request.method === 'OPTIONS') {
@@ -792,7 +792,7 @@ export async function handleAgentRoute(request, response, { path, agent, allowed
     const result = await agent.ask({
       question: body.question,
       preset: body.preset,
-      clientIp: extractClientIp(request),
+      clientIp: extractClientIp(request, trustCloudflare),
     })
     writeJson(response, result.status, { ...cors, ...(result.headers || {}) }, result.body)
     return true
