@@ -6,8 +6,28 @@
 import argparse
 import getpass
 import json
+import shlex
 import subprocess
 import time
+
+
+def environment_line(name, value):
+    """Encode a single UTF-8 systemd EnvironmentFile assignment."""
+    if any(ch in value for ch in ("\r", "\n", "\x00", "\ufeff")):
+        raise SystemExit(f"ERROR: {name} contains an invalid character")
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'{name}="{escaped}"\n'
+
+
+WRITE_ENVIRONMENT = """set -eu
+dir=/etc/project51-classroom
+install -d -m 750 -o root -g root "$dir"
+tmp=$(mktemp "$dir/.public-api.env.XXXXXXXX")
+trap 'rm -f -- "$tmp"' EXIT
+chmod 600 "$tmp"
+cat > "$tmp"
+mv -f -- "$tmp" "$dir/public-api.env"
+"""
 
 
 def main():
@@ -21,20 +41,14 @@ def main():
     password = getpass.getpass("EMQX MQTT password (hidden): ")
     if not password:
         raise SystemExit("ERROR: empty password")
-    if any(ch in password for ch in ("\r", "\n")):
-        raise SystemExit("ERROR: password must not contain newlines")
-
-    env_payload = (
-        f"MQTT_URL={args.mqtt_url}\n"
-        f"MQTT_TOPIC={args.topic}\n"
-        f"MQTT_USER={args.user}\n"
-        f"MQTT_PASSWORD={password}\n"
-    ).encode("utf-8")
+    env_payload = "".join(environment_line(name, value) for name, value in {
+        "MQTT_URL": args.mqtt_url, "MQTT_TOPIC": args.topic,
+        "MQTT_USER": args.user, "MQTT_PASSWORD": password,
+    }.items()).encode("utf-8")
     password = None
 
     remote_cmd = (
-        "sudo install -d -m 700 -o root -g root /etc/project51-classroom && "
-        "sudo install -m 600 -o root -g root /dev/stdin /etc/project51-classroom/public-api.env && "
+        "sudo sh -c " + shlex.quote(WRITE_ENVIRONMENT) + " && "
         "sudo systemctl enable --now project51-public-api.service && "
         "sudo systemctl restart project51-public-api.service"
     )
