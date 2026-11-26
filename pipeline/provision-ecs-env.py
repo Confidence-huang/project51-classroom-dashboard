@@ -21,10 +21,11 @@ def environment_line(name, value):
 
 WRITE_ENVIRONMENT = """set -eu
 dir=/etc/project51-classroom
-install -d -m 750 -o root -g root "$dir"
+install -d -m 750 -o root -g project51deploy "$dir"
 tmp=$(mktemp "$dir/.public-api.env.XXXXXXXX")
 trap 'rm -f -- "$tmp"' EXIT
 chmod 600 "$tmp"
+chown root:root "$tmp"
 cat > "$tmp"
 mv -f -- "$tmp" "$dir/public-api.env"
 """
