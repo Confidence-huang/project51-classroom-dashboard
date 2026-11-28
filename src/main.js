@@ -702,9 +702,9 @@ if (ctrlEls.applyBtn) {
   ctrlEls.autoBtn.addEventListener('click', () => sendControlIntent({ mode: 'AUTO' }))
   ctrlEls.acOnBtn.addEventListener('click', () => {
     const temp = Math.min(30, Math.max(16, Number(ctrlEls.acTemp.value) || 26))
-    sendControlIntent({ ac_demo: { power: 1, temp_c: temp } })
+    sendControlIntent({ ac_temp_c: temp })
   })
-  ctrlEls.acOffBtn.addEventListener('click', () => sendControlIntent({ ac_demo: { power: 0 } }))
+  ctrlEls.acOffBtn.addEventListener('click', () => sendControlIntent({ ac_temp_c: 0 }))
   refreshControlState()
   setInterval(refreshControlState, 3_000)
 }
