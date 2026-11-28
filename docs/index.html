@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#e9f1ee" />
     <meta name="description" content="移远杯智慧教室 4G 实时数据看板" />
     <title>智慧教室 · 实时看板</title>
-    <script type="module" crossorigin src="/smart-classroom-web/assets/index-oliDBlXu.js"></script>
-    <link rel="stylesheet" crossorigin href="/smart-classroom-web/assets/index-kvU3epJf.css">
+    <script type="module" crossorigin src="/smart-classroom-web/assets/index-D_paSI6_.js"></script>
+    <link rel="stylesheet" crossorigin href="/smart-classroom-web/assets/index-Cj-M60WB.css">
   </head>
   <body>
     <div class="page-shell">
@@ -29,6 +29,7 @@
             <p id="connection-detail" class="connection-detail">输入连接信息后，接收 EC200U 的 4G 消息。</p>
             <button id="settings-button" class="button button-primary" type="button">设置云端连接 <span aria-hidden="true">↗</span></button>
             <button id="disconnect-button" class="button button-quiet" type="button" hidden>断开连接</button>
+            <a id="operator-link" class="button button-quiet" referrerpolicy="no-referrer" hidden>打开风扇控制台</a>
           </div>
         </section>
 
@@ -59,6 +60,58 @@
           <article class="reading"><div class="reading-top"><span>温度</span><span class="reading-symbol">°</span></div><div class="reading-value"><strong id="temperature-c">—</strong><span>°C</span></div><p id="temperature-source">计划由环境传感器提供</p></article>
           <article class="reading"><div class="reading-top"><span>相对湿度</span><span class="reading-symbol">% RH</span></div><div class="reading-value"><strong id="humidity-pct">—</strong><span>%</span></div><p id="humidity-source">计划由环境传感器提供</p></article>
           <article class="reading"><div class="reading-top"><span>环境光照</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span id="light-unit">lx</span></div><p id="light-source">计划由环境传感器提供</p></article>
+        </section>
+
+        <section id="unified-control-panel" class="panel control-panel" aria-labelledby="control-title">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">DEVICE CONTROL</p>
+              <h2 id="control-title">硬件控制中心</h2>
+            </div>
+            <span id="ctrl-conn-pill" class="pill pill-idle">检测中</span>
+          </div>
+          <p id="ctrl-status-line" class="panel-note">正在连接设备控制服务…</p>
+
+          <div class="ctrl-grid">
+            <div class="ctrl-card">
+              <h3>风扇与灯环</h3>
+              <div class="ctrl-row">
+                <label for="ctrl-fan-level">风扇档位</label>
+                <select id="ctrl-fan-level">
+                  <option value="0">关闭</option>
+                  <option value="1">1 档</option>
+                  <option value="2">2 档</option>
+                  <option value="3">3 档</option>
+                  <option value="4">4 档</option>
+                  <option value="5">5 档</option>
+                </select>
+                <label for="ctrl-led-out">灯环</label>
+                <select id="ctrl-led-out">
+                  <option value="0">灭</option>
+                  <option value="1">亮</option>
+                </select>
+              </div>
+              <div class="ctrl-actions">
+                <button id="ctrl-apply-btn" class="button button-primary" type="button" disabled>应用手动设置</button>
+                <button id="ctrl-auto-btn" class="button button-quiet" type="button" disabled>恢复自动模式</button>
+              </div>
+            </div>
+
+            <div class="ctrl-card">
+              <h3>模拟空调（1.2.0）</h3>
+              <div class="ctrl-row">
+                <label for="ctrl-ac-temp">设定温度</label>
+                <input id="ctrl-ac-temp" type="number" min="16" max="30" value="26" />
+                <span>°C</span>
+              </div>
+              <div class="ctrl-actions">
+                <button id="ctrl-ac-on-btn" class="button button-primary" type="button" disabled>开机 / 应用温度</button>
+                <button id="ctrl-ac-off-btn" class="button button-quiet" type="button" disabled>关机</button>
+              </div>
+            </div>
+          </div>
+
+          <p id="ctrl-last-cmd" class="panel-note">最近控制回执：暂无</p>
         </section>
 
         <!-- 安大+ 风格：AI 助手看板入口大卡片 -->
@@ -248,6 +301,6 @@
         <button class="button button-primary button-full" type="submit">连接并接收数据</button>
       </form>
     </dialog>
-
+
   </body>
 </html>
