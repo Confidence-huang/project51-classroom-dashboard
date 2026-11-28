@@ -10,7 +10,7 @@ import './style.css'                 // 看板在电脑和手机上共用同一�
 
 // --- 页面数据 ---
 const elements = Object.fromEntries( // 所有可变区域集中列出，便于队友找显示位置。
-  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','light-unit','air-conn-pill','air-quality','air-detail','people-source','temperature-source','humidity-source','light-source','link-pill','link-summary','link-note','link-updated','flow-broker','flow-browser','receipt-label','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','open-agent-drawer','close-agent-drawer','anda-drawer-backdrop','anda-agent-drawer','agent-entry-pill','agent-entry-model-tag','anda-chat-view','anda-config-view','open-agent-config','back-to-chat','close-config-drawer','anda-topbar-model','anda-welcome-screen','anda-messages-list','anda-agent-form','anda-agent-input','anda-agent-submit','anda-platform-name','anda-platform-desc','anda-cfg-base-url','anda-cfg-key','anda-cfg-model','anda-toggle-key','anda-test-btn','anda-enter-chat-btn','anda-test-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
+  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','light-unit','air-conn-pill','air-quality','air-detail','net-state','people-source','temperature-source','humidity-source','light-source','link-pill','link-summary','flow-broker','flow-browser','receipt-label','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','open-agent-drawer','close-agent-drawer','anda-drawer-backdrop','anda-agent-drawer','agent-entry-pill','agent-entry-model-tag','anda-chat-view','anda-config-view','open-agent-config','back-to-chat','close-config-drawer','anda-topbar-model','anda-welcome-screen','anda-messages-list','anda-agent-form','anda-agent-input','anda-agent-submit','anda-platform-name','anda-platform-desc','anda-cfg-base-url','anda-cfg-key','anda-cfg-model','anda-toggle-key','anda-test-btn','anda-enter-chat-btn','anda-test-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
     .map(id => [id, document.getElementById(id)])
 )
 
@@ -174,15 +174,15 @@ async function refreshHistory() {
       if (!data.latest.simulated) {
         const ageMs = Date.now() - Date.parse(data.latest.received_at)
         const active = data.broker_connected && Number.isFinite(ageMs) && ageMs < 30_000
+        if (elements['net-state']) elements['net-state'].textContent = active ? 'ONLINE' : 'OFFLINE'
         if (elements['link-pill']) {
           elements['link-pill'].textContent = active ? '已连接' : '已超时'
           elements['link-pill'].className = `pill pill-${active ? 'live' : 'warn'}`
         }
         const ageSec = Number.isFinite(ageMs) ? Math.max(0, Math.round(ageMs / 1000)) : null
         elements['link-summary'].textContent = active
-          ? `4G 网络已连接 · 实时上报正常（#${data.latest.seq}${ageSec != null ? `，${ageSec} 秒前` : ''}）`
-          : `4G 上报超时 · 等待设备重连（最后 #${data.latest.seq}）`
-        elements['link-updated'].textContent = elements['latest-message-time'].textContent
+          ? `#${data.latest.seq}${ageSec != null ? ` · ${ageSec} 秒前` : ''}`
+          : `上报超时 · #${data.latest.seq}`
       }
       if (!state.messages && elements['message-list'] && elements['message-count']) {
         const recent = data.history.slice(0, 4)
@@ -220,8 +220,9 @@ function receive(topic, bytes) {
   let data
   try { data = JSON.parse(raw) } catch { showMessage(topic, '无法解析的消息', raw); return }
   if (topic === linkTopic && data?.type === 'link_test') {
-    elements['link-summary'].textContent = `收到 EC200U 链路测试 · 序号 ${data.seq ?? '—'}`
-    elements['link-updated'].textContent = `本机接收 ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
+    if (elements['net-state']) elements['net-state'].textContent = 'ONLINE'
+    if (elements['link-pill']) { elements['link-pill'].textContent = '已连接'; elements['link-pill'].className = 'pill pill-live' }
+    elements['link-summary'].textContent = `链路测试 · 序号 ${data.seq ?? '—'}`
     showMessage(topic, '4G 链路测试', raw)
     return
   }
@@ -232,8 +233,9 @@ function receive(topic, bytes) {
   if (topic === state.telemetryTopic && data?.type === 'telemetry') {
     showTelemetry(data)                          // 只有正式遥测主题和类型同时匹配才刷新读数。
     if (data.simulated === false && ['stm32_micropython_aht20_ldr', 'stm32_c_hal_ec200u'].includes(data.source)) {
-      elements['link-summary'].textContent = '已收到板端实测上报 · EC200U 4G 链路已验证'
-      elements['link-updated'].textContent = `本机接收 ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
+      if (elements['net-state']) elements['net-state'].textContent = 'ONLINE'
+      if (elements['link-pill']) { elements['link-pill'].textContent = '已连接'; elements['link-pill'].className = 'pill pill-live' }
+      elements['link-summary'].textContent = `#${data.seq ?? '—'} · 本机实时接收`
     }
     showMessage(topic, '教室实时数据', raw)
     return
@@ -625,8 +627,7 @@ if (ecsSite) {
   elements['flow-broker'].textContent = 'ECS · MQTT + API'
   elements['flow-browser'].textContent = '当前网页 · 免密统一控制'
   elements['receipt-label'].textContent = '服务器接收的最近消息'
-  elements['link-summary'].textContent = '正在读取板端最新 4G 实测数据'
-  elements['link-note'].textContent = '免密同源读取遥测、历史、AI 助手与硬件控制状态。'
+  elements['link-summary'].textContent = '正在读取板端 4G 实测数据'
   elements['message-list'].firstElementChild.textContent = 'ECS 接收的消息与去重结果显示在下方历史列表。'
   state.historyAPI = location.origin
   refreshHistory()
@@ -635,8 +636,7 @@ if (ecsSite) {
   elements['flow-broker'].textContent = 'EMQX + 只读 API'
   elements['flow-browser'].textContent = '当前网页 · 免密自动刷新'
   elements['receipt-label'].textContent = '云端接收的最新消息'
-  elements['link-summary'].textContent = '正在读取板端最新 4G 实测数据'
-  elements['link-note'].textContent = '免密模式经只读 HTTPS API 拉取数据，网页源码不含 MQTT 密码。'
+  elements['link-summary'].textContent = '正在读取板端 4G 实测数据'
   elements['message-list'].firstElementChild.textContent = '免密只读模式：最新实测与历史由只读 API 自动刷新，无需输入密码。'
   elements['history-api-url'].value = publicApiUrl
   state.historyAPI = publicApiUrl
