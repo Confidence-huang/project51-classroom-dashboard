@@ -177,22 +177,32 @@ test('TLS MQTT telemetry, independent identity ACL, Node-RED HTTP/socket authent
 
 test('allow_public_control enables passwordless same-origin /api/state, /api/control and static / while blocking foreign origins', async () => {
   const os = require('node:os');
+  const http = require('node:http');
   const { startServer, authorized } = require('../../cloud/src/server.cjs');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eco-public-ctrl-'));
   const staticDir = path.join(dir, 'dist');
   fs.mkdirSync(staticDir, { recursive: true });
   fs.writeFileSync(path.join(staticDir, 'index.html'), '<!doctype html><title>Unified</title>');
 
-  const cfg = { allow_public_control: true, public_origin: 'https://control.example.test' };
+  const cfg = { allow_public_control: true, public_origin: 'https://control.example.test', allowed_origins: ['https://smartroom.example.test'] };
   assert.equal(authorized({ headers: { host: '127.0.0.1:1880' } }, cfg), true);
   assert.equal(authorized({ headers: { host: '127.0.0.1:1880', origin: 'https://control.example.test' } }, cfg), true);
+  assert.equal(authorized({ headers: { host: '127.0.0.1:1880', origin: 'https://smartroom.example.test' } }, cfg), true);
   assert.equal(authorized({ headers: { host: '127.0.0.1:1880', origin: 'https://evil.example.invalid' } }, cfg), false);
+
+  const mockPublic = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ proxied: req.url, method: req.method }));
+  });
+  await new Promise(resolve => mockPublic.listen(0, '127.0.0.1', resolve));
+  const publicPort = mockPublic.address().port;
 
   fs.writeFileSync(path.join(dir, 'ca.pem'), 'dummy-ca');
   const srv = await startServer({
     port: 0,
     allow_public_control: true,
     static_dir: staticDir,
+    public_api_origin: `http://127.0.0.1:${publicPort}`,
     runtime: path.join(dir, 'runtime'),
     mqtt: { url: 'mqtts://127.0.0.1:1', ca: path.join(dir, 'ca.pem'), username: 'u', password: 'p', devices: ['sim001'] },
   });
@@ -207,6 +217,11 @@ test('allow_public_control enables passwordless same-origin /api/state, /api/con
     const body = await st.json();
     assert.equal(body.public_control, true);
 
+    const tel = await (await fetch(`${base}/api/telemetry`)).json();
+    assert.equal(tel.proxied, '/api/telemetry');
+    const agent = await (await fetch(`${base}/api/agent/status`)).json();
+    assert.equal(agent.proxied, '/api/agent/status');
+
     const foreign = await fetch(`${base}/api/state`, { headers: { Origin: 'https://evil.example.invalid' } });
     assert.equal(foreign.status, 401);
 
@@ -218,6 +233,7 @@ test('allow_public_control enables passwordless same-origin /api/state, /api/con
     assert.equal(badCtrl.status, 409);
   } finally {
     await srv.stop();
+    await new Promise(resolve => mockPublic.close(resolve));
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
