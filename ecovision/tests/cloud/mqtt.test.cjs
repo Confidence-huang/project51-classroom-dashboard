@@ -174,3 +174,50 @@ test('TLS MQTT telemetry, independent identity ACL, Node-RED HTTP/socket authent
   const logs=fs.readdirSync(path.join(dir,'runtime/events')).map(f=>fs.readFileSync(path.join(dir,'runtime/events',f),'utf8')).join('');
   assert.match(logs,/"type":"command"/);assert.match(logs,/"type":"ack"/);assert.ok(!logs.includes(cloudPassword));assert.ok(!logs.includes(config.monitor.token));
 });
+
+test('allow_public_control enables passwordless same-origin /api/state, /api/control and static / while blocking foreign origins', async () => {
+  const os = require('node:os');
+  const { startServer, authorized } = require('../../cloud/src/server.cjs');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eco-public-ctrl-'));
+  const staticDir = path.join(dir, 'dist');
+  fs.mkdirSync(staticDir, { recursive: true });
+  fs.writeFileSync(path.join(staticDir, 'index.html'), '<!doctype html><title>Unified</title>');
+
+  const cfg = { allow_public_control: true, public_origin: 'https://control.example.test' };
+  assert.equal(authorized({ headers: { host: '127.0.0.1:1880' } }, cfg), true);
+  assert.equal(authorized({ headers: { host: '127.0.0.1:1880', origin: 'https://control.example.test' } }, cfg), true);
+  assert.equal(authorized({ headers: { host: '127.0.0.1:1880', origin: 'https://evil.example.invalid' } }, cfg), false);
+
+  fs.writeFileSync(path.join(dir, 'ca.pem'), 'dummy-ca');
+  const srv = await startServer({
+    port: 0,
+    allow_public_control: true,
+    static_dir: staticDir,
+    runtime: path.join(dir, 'runtime'),
+    mqtt: { url: 'mqtts://127.0.0.1:1', ca: path.join(dir, 'ca.pem'), username: 'u', password: 'p', devices: ['sim001'] },
+  });
+  try {
+    const base = `http://127.0.0.1:${srv.port}`;
+    const home = await fetch(`${base}/`);
+    assert.equal(home.status, 200);
+    assert.match(await home.text(), /Unified/);
+
+    const st = await fetch(`${base}/api/state`);
+    assert.equal(st.status, 200);
+    const body = await st.json();
+    assert.equal(body.public_control, true);
+
+    const foreign = await fetch(`${base}/api/state`, { headers: { Origin: 'https://evil.example.invalid' } });
+    assert.equal(foreign.status, 401);
+
+    const badCtrl = await fetch(`${base}/api/control`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_id: 'sim001', intent: { mode: 'AUTO' } }),
+    });
+    assert.equal(badCtrl.status, 409);
+  } finally {
+    await srv.stop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
