@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#e9f1ee" />
     <meta name="description" content="移远杯智慧教室 4G 实时数据看板" />
     <title>智慧教室 · 实时看板</title>
-    <script type="module" crossorigin src="/smart-classroom-web/assets/index-Cr7k-115.js"></script>
-    <link rel="stylesheet" crossorigin href="/smart-classroom-web/assets/index-Cj-M60WB.css">
+    <script type="module" crossorigin src="/smart-classroom-web/assets/index-BZ-Ke_qz.js"></script>
+    <link rel="stylesheet" crossorigin href="/smart-classroom-web/assets/index-Bo50ONx-.css">
   </head>
   <body>
     <div class="page-shell">
@@ -35,7 +35,7 @@
 
         <section class="flow" aria-label="当前数据链路">
           <span class="flow-title">数据从哪里来</span>
-          <span class="flow-step">AHT20 / BH1750 <small>温湿度与外接照度采集</small></span>
+          <span class="flow-step">AHT20 / BH1750 / SGP30 <small>温湿度、照度与空气采集</small></span>
           <span class="flow-arrow">→</span>
           <span class="flow-step">STM32 + EC200U <small>4G 上报</small></span>
           <span class="flow-arrow">→</span>
@@ -60,6 +60,7 @@
           <article class="reading"><div class="reading-top"><span>温度</span><span class="reading-symbol">°</span></div><div class="reading-value"><strong id="temperature-c">—</strong><span>°C</span></div><p id="temperature-source">计划由环境传感器提供</p></article>
           <article class="reading"><div class="reading-top"><span>相对湿度</span><span class="reading-symbol">% RH</span></div><div class="reading-value"><strong id="humidity-pct">—</strong><span>%</span></div><p id="humidity-source">计划由环境传感器提供</p></article>
           <article class="reading"><div class="reading-top"><span>环境光照</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span id="light-unit">lx</span></div><p id="light-source">计划由外接 BH1750 提供</p></article>
+          <article class="reading reading-air"><div class="reading-top"><span>空气质量</span><span id="air-conn-pill" class="pill pill-idle">待连接</span></div><div class="reading-value"><strong id="air-quality">—</strong><span id="air-unit">SGP30</span></div><p id="air-detail">eCO₂ — · TVOC —</p></article>
         </section>
 
         <section id="unified-control-panel" class="panel control-panel" aria-labelledby="control-title">
@@ -135,7 +136,7 @@
         </section>
 
         <section class="lower-grid">
-          <article class="panel link-panel"><div class="panel-head"><div><p class="eyebrow">LINK CHECK</p><h2>4G 链路状态</h2></div><span class="signal-icon" aria-hidden="true">↗</span></div><p id="link-summary" class="link-summary">等待 EC200U 上报消息</p><p id="link-note" class="panel-note">测试主题已验证：<code>classroom/demo/ec200u/link_test</code></p><small id="link-updated">等待本次连接的消息</small></article>
+          <article class="panel link-panel"><div class="panel-head"><div><p class="eyebrow">LINK CHECK</p><h2>4G 链路状态</h2></div><span id="link-pill" class="pill pill-idle">待连接</span></div><p id="link-summary" class="link-summary">等待 EC200U 上报消息</p><p id="link-note" class="panel-note">测试主题已验证：<code>classroom/demo/ec200u/link_test</code></p><small id="link-updated">等待本次连接的消息</small></article>
           <article class="panel message-panel"><div class="panel-head"><div><p class="eyebrow">MESSAGE LOG</p><h2>最近收到的消息</h2></div><span id="message-count" class="count">0 条</span></div><ul id="message-list" class="message-list"><li class="empty-message">连接后，新消息会显示在这里。</li></ul></article>
         </section>
 
