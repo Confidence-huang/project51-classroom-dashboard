@@ -92,7 +92,7 @@ function showTelemetry(data, receivedAt = new Date().toISOString()) {
   elements['people-source'].textContent = state.simulated ? simulatedSource : data.people_count == null ? 'K230 尚未接入' : '来自 K230，经 STM32 上报'
   elements['temperature-source'].textContent = state.simulated ? simulatedSource : '板载 AHT20 实测'
   elements['humidity-source'].textContent = state.simulated ? simulatedSource : '板载 AHT20 实测'
-  elements['light-source'].textContent = state.simulated ? simulatedSource : rawLight ? '板载光敏电阻 · 未标定 lx' : '环境传感器'
+  elements['light-source'].textContent = state.simulated ? simulatedSource : rawLight ? '板载光敏电阻 · 未标定 lx' : '外接 BH1750 实测'
   elements['last-updated'].textContent = `${state.simulated ? '模拟 · ' : ''}接收 ${new Date(receivedAt).toLocaleTimeString('zh-CN', { hour12: false })}`
   showFreshness()
 }
@@ -419,7 +419,7 @@ function appendAiLoading() {
         boundary.has_data === false ? '数据库暂无样本' : boundary.simulated ? '模拟数据' : '板端实测',
         boundary.stale ? '数据已过期（>30s）' : '时效正常',
         boundary.people_available ? '人数已接入' : 'K230 人数未接入',
-        boundary.lux_calibrated ? '光照已标定 lx' : '光敏未标定 lx（仅 ADC 原码）',
+        boundary.lux_calibrated ? '外接 BH1750 照度（lx）' : '光敏未标定 lx（仅 ADC 原码）',
         '只读建议无反控',
       ]
       bText.textContent = `数据边界：${flags.join(' · ')}`

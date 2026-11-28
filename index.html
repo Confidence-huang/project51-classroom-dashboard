@@ -33,7 +33,7 @@
 
         <section class="flow" aria-label="当前数据链路">
           <span class="flow-title">数据从哪里来</span>
-          <span class="flow-step">AHT20 / 光敏 <small>板载采集已验证</small></span>
+          <span class="flow-step">AHT20 / BH1750 <small>温湿度与外接照度采集</small></span>
           <span class="flow-arrow">→</span>
           <span class="flow-step">STM32 + EC200U <small>4G 上报</small></span>
           <span class="flow-arrow">→</span>
@@ -57,7 +57,7 @@
           <article class="reading reading-people"><div class="reading-top"><span>识别人数</span><span class="reading-symbol">◌</span></div><div class="reading-value"><strong id="people-count">—</strong><span>人</span></div><p id="people-source">计划由 K230 提供</p></article>
           <article class="reading"><div class="reading-top"><span>温度</span><span class="reading-symbol">°</span></div><div class="reading-value"><strong id="temperature-c">—</strong><span>°C</span></div><p id="temperature-source">计划由环境传感器提供</p></article>
           <article class="reading"><div class="reading-top"><span>相对湿度</span><span class="reading-symbol">% RH</span></div><div class="reading-value"><strong id="humidity-pct">—</strong><span>%</span></div><p id="humidity-source">计划由环境传感器提供</p></article>
-          <article class="reading"><div class="reading-top"><span>环境光照</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span id="light-unit">lx</span></div><p id="light-source">计划由环境传感器提供</p></article>
+          <article class="reading"><div class="reading-top"><span>环境光照</span><span class="reading-symbol">☼</span></div><div class="reading-value"><strong id="light-lux">—</strong><span id="light-unit">lx</span></div><p id="light-source">计划由外接 BH1750 提供</p></article>
         </section>
 
         <section id="unified-control-panel" class="panel control-panel" aria-labelledby="control-title">
@@ -143,7 +143,7 @@
           <ul id="history-list" class="history-list"><li>暂无历史记录。</li></ul>
         </section>
 
-        <p class="data-note">说明：板载光敏电阻尚无 lx 标定，实测时显示 ADC 原码；K230 未接入时人数显示“—”。历史记录来自独立接收服务；未部署该服务时公开网站只显示 MQTT 最新消息。</p>
+        <p class="data-note">说明：环境光照已对齐 LCD 改用外接 BH1750 照度传感器（单位 lx）；若设备仅上报旧版板载 ADC 原码则自动兼容显示 ADC；K230 未接入时人数显示“—”。历史记录来自独立接收服务；未部署该服务时公开网站只显示 MQTT 最新消息。</p>
       </main>
       <footer><span>移远杯 · 智慧教室系统</span><span>当前版本：实时展示联调</span></footer>
     </div>
@@ -179,7 +179,7 @@
                   <span class="anda-suggest-arrow" aria-hidden="true">→</span>
                 </button>
                 <button class="anda-suggest-card" type="button" data-preset="trend">
-                  <span>近 1 小时温湿度与光敏波动趋势？</span>
+                  <span>近 1 小时温湿度与光照波动趋势？</span>
                   <span class="anda-suggest-arrow" aria-hidden="true">→</span>
                 </button>
                 <button class="anda-suggest-card" type="button" data-preset="energy">
@@ -199,7 +199,7 @@
 
           <footer class="anda-chat-footer">
             <form id="anda-agent-form" class="anda-input-bar" autocomplete="off">
-              <input id="anda-agent-input" name="question" type="text" maxlength="300" placeholder="问温湿度、光敏ADC、设备状态、节能建议..." aria-label="向 AI 教室助手提问" />
+              <input id="anda-agent-input" name="question" type="text" maxlength="300" placeholder="问温湿度、光照强度、设备状态、节能建议..." aria-label="向 AI 教室助手提问" />
               <button id="anda-agent-submit" class="anda-send-btn" type="submit">
                 <span class="anda-send-arrow" aria-hidden="true">➤</span>
                 <span>发送</span>
