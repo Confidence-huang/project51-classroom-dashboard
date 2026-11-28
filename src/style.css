@@ -127,3 +127,12 @@
 @media(max-width:1050px){.readings{grid-template-columns:repeat(2,minmax(0,1fr))}.intro{grid-template-columns:1fr 300px}.flow{gap:10px}.flow-title{width:100%}}
 @media(max-width:700px){.page-shell{padding:0 16px}.topbar{height:68px}.edition{display:none}.intro{display:block;padding:42px 0 32px}.intro h1{font-size:46px}.intro-copy{font-size:13px}.connection-card{margin-top:28px}.flow{gap:9px;padding:15px}.flow-title{width:100%;margin:0}.flow-step{font-size:10px}.flow-step small{font-size:9px}.flow-arrow{font-size:14px}.receipt{display:grid;gap:6px;padding:14px}.receipt small{margin:0}.section-heading{margin:40px 0 16px;align-items:start}.section-heading h2{font-size:23px}.freshness{max-width:115px}.readings{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.reading{min-height:145px;padding:15px}.reading-value{margin:22px 0 8px}.reading-value strong{font-size:34px}.lower-grid{grid-template-columns:1fr;gap:10px}.panel{min-height:210px;padding:20px}.history-list{grid-template-columns:1fr}.anda-entry-card{flex-direction:column;align-items:flex-start}.anda-entry-right{width:100%;justify-content:space-between}.anda-drawer-window{width:100vw;height:100vh;border-radius:0;border:0}.anda-chat-body,.anda-config-body{padding:18px}.anda-welcome-head h3{font-size:26px}.anda-msg{max-width:96%}.anda-config-actions{flex-direction:column}footer{font-size:10px}}
 @media(prefers-reduced-motion:no-preference){.pill-live:before{animation:signal 2s infinite}@keyframes signal{50%{opacity:.25}}}
+.control-panel{margin-top:20px}
+.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.ctrl-card{border:1px solid rgba(18,52,44,.12);border-radius:14px;padding:14px;background:rgba(255,255,255,.55)}
+.ctrl-card h3{margin:0 0 10px;font-size:.95rem;color:var(--ink)}
+.ctrl-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem}
+.ctrl-row select,.ctrl-row input{padding:6px 10px;border:1px solid rgba(18,52,44,.2);border-radius:8px;background:#fff;font:inherit}
+.ctrl-row input[type=number]{width:68px}
+.ctrl-actions{display:flex;flex-wrap:wrap;gap:8px}
+.ctrl-actions .button:disabled{opacity:.45;cursor:not-allowed}

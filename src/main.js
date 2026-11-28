@@ -584,3 +584,127 @@ if (ecsSite) {
 }
 refreshAgentStatus()
 setInterval(refreshHistory, 5_000)              // 每五秒读取已持久化的最新快照。
+
+// --- 统一硬件控制面板（免密同源 /api/state & POST /api/control） ---
+const ctrlEls = {
+  pill: document.getElementById('ctrl-conn-pill'),
+  status: document.getElementById('ctrl-status-line'),
+  fan: document.getElementById('ctrl-fan-level'),
+  led: document.getElementById('ctrl-led-out'),
+  applyBtn: document.getElementById('ctrl-apply-btn'),
+  autoBtn: document.getElementById('ctrl-auto-btn'),
+  acTemp: document.getElementById('ctrl-ac-temp'),
+  acOnBtn: document.getElementById('ctrl-ac-on-btn'),
+  acOffBtn: document.getElementById('ctrl-ac-off-btn'),
+  lastCmd: document.getElementById('ctrl-last-cmd'),
+}
+const ctrlState = { device: null, busy: false, apiBase: (import.meta.env.VITE_CONTROL_API_URL || '').trim().replace(/\/$/, '') }
+
+function renderControlPanel(view) {
+  const devices = Array.isArray(view?.devices) ? view.devices : []
+  const dev = devices.find(d => !d.simulated) || devices[0] || null
+  ctrlState.device = dev
+  if (!dev) {
+    ctrlEls.pill.textContent = '无设备'
+    ctrlEls.pill.className = 'pill pill-idle'
+    ctrlEls.status.textContent = '控制服务已连接，等待设备上线遥测。'
+    ctrlEls.applyBtn.disabled = ctrlEls.autoBtn.disabled = ctrlEls.acOnBtn.disabled = ctrlEls.acOffBtn.disabled = true
+    return
+  }
+  const t = dev.telemetry || {}
+  const online = Boolean(dev.can_control)
+  ctrlEls.pill.textContent = dev.connection || (online ? 'ONLINE' : 'STALE')
+  ctrlEls.pill.className = `pill ${online ? 'pill-live' : 'pill-warn'}`
+  ctrlEls.status.textContent = `${dev.device_id} · 模式 ${t.mode || '—'} · 风扇 ${t.fan_out ? (t.fan_level ?? 1) + ' 档' : '关闭'} · 灯环 ${t.led_out ? '亮' : '灭'}`
+  ctrlEls.applyBtn.disabled = ctrlEls.autoBtn.disabled = ctrlState.busy || !online
+  const acReady = Boolean(dev.ac_control_available)
+  ctrlEls.acOnBtn.disabled = ctrlEls.acOffBtn.disabled = ctrlState.busy || !online || !acReady
+  if (!acReady && online) ctrlEls.status.textContent += '（当前固件未上报模拟空调能力）'
+
+  // 当通过同源 ECS 控制服务访问时，把最新遥测同步到顶部实时卡片
+  if (t.seq != null && (ecsSite || !publicApiMode)) {
+    if (t.vision_valid && t.count != null) elements['people-count'].textContent = String(t.count)
+    if (t.temp_valid && t.temp_c != null) elements['temperature-c'].textContent = Number(t.temp_c).toFixed(2)
+    if (t.temp_valid && t.humidity_pct != null) elements['humidity-pct'].textContent = Number(t.humidity_pct).toFixed(2)
+    if (t.ts) elements['last-updated'].textContent = new Date(t.ts * 1000).toLocaleTimeString('zh-CN', { hour12: false })
+    elements['data-pill'].textContent = online ? '实时数据' : '数据过期'
+    elements['data-pill'].className = `pill ${online ? 'pill-live' : 'pill-warn'}`
+  }
+
+  const latest = Array.isArray(view.commands) && view.commands[0]
+  if (latest) {
+    ctrlEls.lastCmd.textContent = `最近控制回执：${latest.command?.cmd_id?.slice(0, 8) || '—'} · 状态 ${latest.state || '—'}`
+  }
+}
+
+async function refreshControlState() {
+  if (!ctrlEls.pill) return
+  if (publicApiMode && !ctrlState.apiBase && !ecsSite) {
+    ctrlEls.pill.textContent = '只读页'
+    ctrlEls.pill.className = 'pill pill-idle'
+    ctrlEls.status.textContent = operatorUrl ? '当前为 GitHub Pages 只读看板，点击右上角入口进入统一免密控制页。' : '当前为只读看板（未配置控制后端地址）。'
+    return
+  }
+  try {
+    const res = await fetch(`${ctrlState.apiBase}/api/state`, { cache: 'no-store' })
+    if (res.status === 401) {
+      ctrlEls.pill.textContent = '需认证'
+      ctrlEls.pill.className = 'pill pill-warn'
+      ctrlEls.status.textContent = '控制服务未开启免密模式（请开启 allow_public_control 或先登录）。'
+      return
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    renderControlPanel(await res.json())
+  } catch {
+    ctrlEls.pill.textContent = '未连接'
+    ctrlEls.pill.className = 'pill pill-idle'
+    ctrlEls.status.textContent = '暂未连接到控制服务，仅展示公开只读数据。'
+  }
+}
+
+async function sendControlIntent(intent) {
+  if (!ctrlState.device || ctrlState.busy) return
+  const t = ctrlState.device.telemetry || {}
+  ctrlState.busy = true
+  renderControlPanel({ devices: [ctrlState.device], commands: [] })
+  try {
+    const res = await fetch(`${ctrlState.apiBase}/api/control`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        device_id: ctrlState.device.device_id,
+        observed: { boot_id: t.boot_id, control_epoch: t.control_epoch },
+        intent,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) {
+      ctrlEls.lastCmd.textContent = `下发失败：${data.error || `HTTP ${res.status}`}`
+    } else {
+      ctrlEls.lastCmd.textContent = `已下发 ${data.command?.cmd_id?.slice(0, 8) || ''}，等待设备 ACK…`
+      setTimeout(refreshControlState, 400)
+      setTimeout(refreshControlState, 1200)
+    }
+  } catch (err) {
+    ctrlEls.lastCmd.textContent = `请求异常：${err.message}`
+  } finally {
+    ctrlState.busy = false
+    refreshControlState()
+  }
+}
+
+if (ctrlEls.applyBtn) {
+  ctrlEls.applyBtn.addEventListener('click', () => {
+    const level = Number(ctrlEls.fan.value) || 0
+    const led = Number(ctrlEls.led.value) ? 1 : 0
+    sendControlIntent({ mode: 'REMOTE', fan_out: level > 0 ? 1 : 0, fan_level: level, led_out: led })
+  })
+  ctrlEls.autoBtn.addEventListener('click', () => sendControlIntent({ mode: 'AUTO' }))
+  ctrlEls.acOnBtn.addEventListener('click', () => {
+    const temp = Math.min(30, Math.max(16, Number(ctrlEls.acTemp.value) || 26))
+    sendControlIntent({ ac_demo: { power: 1, temp_c: temp } })
+  })
+  ctrlEls.acOffBtn.addEventListener('click', () => sendControlIntent({ ac_demo: { power: 0 } }))
+  refreshControlState()
+  setInterval(refreshControlState, 3_000)
+}
