@@ -14,14 +14,41 @@ function isPublicControlEnabled(config) {
   return Boolean(config?.allow_public_control) || process.env.ECOVISION_ALLOW_PUBLIC_CONTROL === 'true';
 }
 
+function allowedOrigins(req, config) {
+  const list = [config.public_origin || `http://${req.headers.host}`];
+  if (Array.isArray(config?.allowed_origins)) list.push(...config.allowed_origins);
+  const envExtra = (process.env.ECOVISION_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+  list.push(...envExtra);
+  return new Set(list.filter(Boolean));
+}
+
 function authorized(req, config) {
-  const origin = config.public_origin || `http://${req.headers.host}`;
-  if (req.headers.origin && req.headers.origin !== origin) return false;
+  if (req.headers.origin && !allowedOrigins(req, config).has(req.headers.origin)) return false;
   if (isPublicControlEnabled(config)) return true;
   const raw = req.headers.authorization || '';
   if (!raw.startsWith('Basic ')) return false;
   const received = Buffer.from(raw.slice(6), 'base64').toString();
   return matchesSecret(received, `${config.viewer_user}:${config.viewer_password}`);
+}
+
+function tryProxyPublicApi(req, res, targetBase) {
+  if (!targetBase) return false;
+  const reqPath = (req.url || '/').split('?', 1)[0];
+  if (reqPath !== '/api/telemetry' && !reqPath.startsWith('/api/agent/')) return false;
+  const target = new URL(req.url || '/', targetBase);
+  const headers = { ...req.headers, host: target.host };
+  delete headers['content-length'];
+  const proxyReq = http.request(target, { method: req.method, headers }, proxyRes => {
+    const resHeaders = { ...proxyRes.headers };
+    delete resHeaders['access-control-allow-origin'];
+    res.writeHead(proxyRes.statusCode || 502, resHeaders);
+    proxyRes.pipe(res);
+  });
+  proxyReq.on('error', () => {
+    if (!res.headersSent) sendJson(res, 502, { error: 'PUBLIC_API_UNAVAILABLE' });
+  });
+  req.pipe(proxyReq);
+  return true;
 }
 
 const MIME_TYPES = {
@@ -133,6 +160,7 @@ async function startServer(config) {
   }
   const bridge = new Bridge(config.mqtt, log);
   const staticDir = config.static_dir || process.env.ECOVISION_STATIC_DIR || '';
+  const publicApiOrigin = config.public_api_origin || process.env.ECOVISION_PUBLIC_API_ORIGIN || '';
   const lastControlAt = new Map();
   const auth = (req,res,next) => {
     if (authorized(req,config)) return next();
@@ -143,6 +171,7 @@ async function startServer(config) {
     auth(req,res,async () => {
       res.setHeader('Cache-Control','no-store');
       const reqPath = (req.url || '/').split('?', 1)[0];
+      if (tryProxyPublicApi(req, res, publicApiOrigin)) return;
       if (req.method === 'GET' && reqPath === '/api/state') {
         const view = bridge.cloud.view();
         sendJson(res, 200, { ...view, public_control: isPublicControlEnabled(config) });
