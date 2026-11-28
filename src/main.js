@@ -558,11 +558,11 @@ elements['disconnect-button'].addEventListener('click', () => {
 setInterval(showFreshness, 1_000)               // 超过 30 秒无遥测时明确提示数据过期。
 if (ecsSite) {
   elements['settings-button'].hidden = true         // ECS 服务端持有 MQTT 密码，浏览器不再收集账号。
-  elements['flow-broker'].textContent = '队长 ECS · 自建 MQTT'
-  elements['flow-browser'].textContent = '当前网页 · 历史 API 展示'
+  elements['flow-broker'].textContent = 'ECS · MQTT + API'
+  elements['flow-browser'].textContent = '当前网页 · 免密统一控制'
   elements['receipt-label'].textContent = '服务器接收的最近消息'
-  elements['link-summary'].textContent = '等待 EC200U 切换到队长 ECS'
-  elements['link-note'].textContent = '当前仅模拟上报贯通；真机切换后再核对 LCD 与网页。'
+  elements['link-summary'].textContent = '正在读取板端最新 4G 实测数据'
+  elements['link-note'].textContent = '免密同源读取遥测、历史、AI 助手与硬件控制状态。'
   elements['message-list'].firstElementChild.textContent = 'ECS 接收的消息与去重结果显示在下方历史列表。'
   state.historyAPI = location.origin
   refreshHistory()
