@@ -26,3 +26,21 @@ test('允许板载 AHT20 与未标定的光敏 ADC', () => {
   assert.equal(read(Buffer.from(JSON.stringify(data))).light_raw_u16, 22917)
   assert.throws(() => read(Buffer.from(JSON.stringify({ ...data, light_raw_u16: 90000 }))))
 })
+
+test('支持 SGP30 空气质量与外接 BH1750 lx 字段', () => {
+  const data = {
+    ...sample(3, 'sgp30'),
+    simulated: false,
+    people_count: 1,
+    light_lux: 10.83,
+    light_raw_u16: 22000,
+    air_valid: true,
+    air_status: 0,
+    eco2_ppm: 412,
+    tvoc_ppb: 8,
+  }
+  const parsed = read(Buffer.from(JSON.stringify(data)))
+  assert.equal(parsed.air_valid, true)
+  assert.equal(parsed.eco2_ppm, 412)
+  assert.equal(parsed.tvoc_ppb, 8)
+})

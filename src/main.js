@@ -10,7 +10,7 @@ import './style.css'                 // 看板在电脑和手机上共用同一�
 
 // --- 页面数据 ---
 const elements = Object.fromEntries( // 所有可变区域集中列出，便于队友找显示位置。
-  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','light-unit','people-source','temperature-source','humidity-source','light-source','link-summary','link-note','link-updated','flow-broker','flow-browser','receipt-label','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','open-agent-drawer','close-agent-drawer','anda-drawer-backdrop','anda-agent-drawer','agent-entry-pill','agent-entry-model-tag','anda-chat-view','anda-config-view','open-agent-config','back-to-chat','close-config-drawer','anda-topbar-model','anda-welcome-screen','anda-messages-list','anda-agent-form','anda-agent-input','anda-agent-submit','anda-platform-name','anda-platform-desc','anda-cfg-base-url','anda-cfg-key','anda-cfg-model','anda-toggle-key','anda-test-btn','anda-enter-chat-btn','anda-test-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
+  ['broker-pill','connection-detail','data-pill','last-updated','people-count','temperature-c','humidity-pct','light-lux','light-unit','air-conn-pill','air-quality','air-detail','people-source','temperature-source','humidity-source','light-source','link-pill','link-summary','link-note','link-updated','flow-broker','flow-browser','receipt-label','message-list','message-count','latest-message','latest-message-time','history-list','history-count','history-status','open-agent-drawer','close-agent-drawer','anda-drawer-backdrop','anda-agent-drawer','agent-entry-pill','agent-entry-model-tag','anda-chat-view','anda-config-view','open-agent-config','back-to-chat','close-config-drawer','anda-topbar-model','anda-welcome-screen','anda-messages-list','anda-agent-form','anda-agent-input','anda-agent-submit','anda-platform-name','anda-platform-desc','anda-cfg-base-url','anda-cfg-key','anda-cfg-model','anda-toggle-key','anda-test-btn','anda-enter-chat-btn','anda-test-status','settings-dialog','connection-form','broker-host','broker-user','broker-password','telemetry-topic','history-api-url','form-message','settings-button','disconnect-button','close-settings']
     .map(id => [id, document.getElementById(id)])
 )
 
@@ -93,8 +93,44 @@ function showTelemetry(data, receivedAt = new Date().toISOString()) {
   elements['temperature-source'].textContent = state.simulated ? simulatedSource : '板载 AHT20 实测'
   elements['humidity-source'].textContent = state.simulated ? simulatedSource : '板载 AHT20 实测'
   elements['light-source'].textContent = state.simulated ? simulatedSource : rawLight ? '板载光敏电阻 · 未标定 lx' : '外接 BH1750 实测'
+  updateAirCard(data)
   elements['last-updated'].textContent = `${state.simulated ? '模拟 · ' : ''}接收 ${new Date(receivedAt).toLocaleTimeString('zh-CN', { hour12: false })}`
   showFreshness()
+}
+
+function updateAirCard(data) {
+  const pill = elements['air-conn-pill']
+  const value = elements['air-quality']
+  const detail = elements['air-detail']
+  if (!pill || !value || !detail) return
+  if (data.air_valid === true && typeof data.eco2_ppm === 'number') {
+    const tvoc = typeof data.tvoc_ppb === 'number' ? data.tvoc_ppb : 0
+    const poor = data.eco2_ppm >= 2000 || tvoc >= 660
+    const fair = !poor && (data.eco2_ppm >= 1000 || tvoc >= 220)
+    pill.textContent = '已连接'
+    pill.className = 'pill pill-live'
+    value.textContent = poor ? 'POOR' : fair ? 'FAIR' : 'GOOD'
+    detail.textContent = `eCO₂ ${data.eco2_ppm} ppm · TVOC ${tvoc} ppb`
+    return
+  }
+  if (data.air_status === 1) {
+    pill.textContent = '暖机中'
+    pill.className = 'pill pill-warn'
+    value.textContent = 'WARM'
+    detail.textContent = 'SGP30 预热中（约 15 秒）'
+    return
+  }
+  if (data.air_valid === false) {
+    pill.textContent = '未连接'
+    pill.className = 'pill pill-warn'
+    value.textContent = '—'
+    detail.textContent = 'SGP30 未连接或通信异常'
+    return
+  }
+  pill.textContent = '未上报'
+  pill.className = 'pill pill-idle'
+  value.textContent = '—'
+  detail.textContent = '当前固件未上报空气数据'
 }
 
 // --- 从历史服务读取已入库快照并显示最近五条 ---
@@ -121,13 +157,14 @@ async function refreshHistory() {
     elements['history-count'].textContent = `${data.history.length} 条`
     elements['history-status'].textContent = `订阅主题：${data.topic} · ${data.broker_connected ? '云端已连接' : '云端暂时断开'}`
     elements['history-list'].replaceChildren()
-    for (const row of data.history.slice(0, 5)) {
+    for (const row of data.history.slice(0, 6)) {
       const item = document.createElement('li')
       const time = document.createElement('time')
       time.textContent = `${row.simulated ? '模拟 · ' : ''}#${row.seq} · ${new Date(row.received_at).toLocaleString('zh-CN')}`
       const people = row.people_count == null ? '人数待接入' : `${row.people_count} 人`
       const light = row.light_lux == null ? `${row.light_raw_u16} ADC` : `${row.light_lux} lx`
-      item.append(time, `${people} · ${row.temperature_c} °C · ${row.humidity_pct}% · ${light}`)
+      const air = row.air_valid && row.eco2_ppm != null ? ` · eCO₂ ${row.eco2_ppm} ppm` : ''
+      item.append(time, `${people} · ${row.temperature_c} °C · ${row.humidity_pct}% · ${light}${air}`)
       elements['history-list'].append(item)     // textContent 路径，不执行云端载荷中的 HTML。
     }
     if (data.latest) showTelemetry(data.latest, data.latest.received_at)
@@ -135,10 +172,37 @@ async function refreshHistory() {
       elements['latest-message'].textContent = `${data.latest.simulated ? '模拟样本' : '设备遥测'} #${data.latest.seq}`
       elements['latest-message-time'].textContent = `云端入库 ${new Date(data.latest.received_at).toLocaleString('zh-CN')}`
       if (!data.latest.simulated) {
-        elements['link-summary'].textContent = ecsSite
-          ? '已收到非模拟遥测，待与设备日志核对 4G 链路'
-          : `已收到板端实测遥测 #${data.latest.seq} · 免密只读展示中`
+        const ageMs = Date.now() - Date.parse(data.latest.received_at)
+        const active = data.broker_connected && Number.isFinite(ageMs) && ageMs < 30_000
+        if (elements['link-pill']) {
+          elements['link-pill'].textContent = active ? '已连接' : '已超时'
+          elements['link-pill'].className = `pill pill-${active ? 'live' : 'warn'}`
+        }
+        const ageSec = Number.isFinite(ageMs) ? Math.max(0, Math.round(ageMs / 1000)) : null
+        elements['link-summary'].textContent = active
+          ? `4G 网络已连接 · 实时上报正常（#${data.latest.seq}${ageSec != null ? `，${ageSec} 秒前` : ''}）`
+          : `4G 上报超时 · 等待设备重连（最后 #${data.latest.seq}）`
         elements['link-updated'].textContent = elements['latest-message-time'].textContent
+      }
+      if (!state.messages && elements['message-list'] && elements['message-count']) {
+        const recent = data.history.slice(0, 4)
+        elements['message-list'].replaceChildren()
+        for (const row of recent) {
+          const li = document.createElement('li')
+          const t = document.createElement('time')
+          t.textContent = new Date(row.received_at).toLocaleTimeString('zh-CN', { hour12: false })
+          const body = document.createElement('div')
+          const strong = document.createElement('strong')
+          strong.textContent = `${row.simulated ? '模拟样本' : '云端入库'} #${row.seq}`
+          const code = document.createElement('code')
+          const light = row.light_lux == null ? `${row.light_raw_u16} ADC` : `${row.light_lux} lx`
+          const air = row.air_valid && row.eco2_ppm != null ? ` · eCO₂ ${row.eco2_ppm} ppm` : ''
+          code.textContent = `${row.people_count ?? '—'} 人 · ${row.temperature_c} °C · ${row.humidity_pct}% · ${light}${air}`
+          body.append(strong, code)
+          li.append(t, body)
+          elements['message-list'].append(li)
+        }
+        elements['message-count'].textContent = `最近 ${recent.length} 条`
       }
     }
     showFreshness()

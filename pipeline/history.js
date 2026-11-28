@@ -38,16 +38,20 @@ db.exec(`CREATE TABLE IF NOT EXISTS telemetry_v2 (
   captured_at TEXT NOT NULL, received_at TEXT NOT NULL, simulated INTEGER NOT NULL,
   people_count INTEGER, temperature_c REAL NOT NULL,
   humidity_pct REAL NOT NULL, light_lux REAL, light_raw_u16 INTEGER,
+  air_valid INTEGER, air_status INTEGER, eco2_ppm INTEGER, tvoc_ppb INTEGER,
   PRIMARY KEY(device_id, seq)
 )`)
+for (const col of ['air_valid INTEGER', 'air_status INTEGER', 'eco2_ppm INTEGER', 'tvoc_ppb INTEGER']) {
+  try { db.exec(`ALTER TABLE telemetry_v2 ADD COLUMN ${col}`) } catch {}
+}
 db.exec('CREATE INDEX IF NOT EXISTS telemetry_v2_simulated_recency ON telemetry_v2 (simulated, received_at DESC, seq DESC)')
 // 旧表限制人数和 lx 必填；新表允许尚未接入 K230 与未标定的光敏原码。
 // 复制旧数据但保留原表，已有本机历史不会被迁移操作删除。
 const legacy = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry'").get()
 if (legacy) db.exec(`INSERT OR IGNORE INTO telemetry_v2
   SELECT device_id, seq, room_id, captured_at, received_at, simulated,
-    people_count, temperature_c, humidity_pct, light_lux, NULL FROM telemetry`)
-const save = db.prepare(`INSERT OR IGNORE INTO telemetry_v2 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    people_count, temperature_c, humidity_pct, light_lux, NULL, NULL, NULL, NULL, NULL FROM telemetry`)
+const save = db.prepare(`INSERT OR IGNORE INTO telemetry_v2 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 const recent = db.prepare(`SELECT * FROM telemetry_v2 ORDER BY received_at DESC, seq DESC LIMIT ?`)
 const client = mqtt.connect(url, {
   username: process.env.MQTT_USER,
@@ -74,7 +78,9 @@ client.on('message', (receivedTopic, bytes) => {
     const data = read(bytes)
     const result = save.run(data.device_id, data.seq, data.room_id, data.captured_at,
       new Date().toISOString(), Number(data.simulated), data.people_count,
-      data.temperature_c, data.humidity_pct, data.light_lux, data.light_raw_u16 ?? null)
+      data.temperature_c, data.humidity_pct, data.light_lux, data.light_raw_u16 ?? null,
+      data.air_valid == null ? null : Number(data.air_valid), data.air_status ?? null,
+      data.eco2_ppm ?? null, data.tvoc_ppb ?? null)
     console.log(result.changes ? 'STORED' : 'DUPLICATE', JSON.stringify({ seq: data.seq, device_id: data.device_id }))
   } catch (error) { console.error('INVALID_MESSAGE', error.message) }
 })

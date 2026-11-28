@@ -36,6 +36,9 @@ export function read(bytes) {
   const calibrated = typeof data.light_lux === 'number' && Number.isFinite(data.light_lux)
   const raw = data.light_lux === null && Number.isInteger(data.light_raw_u16) && data.light_raw_u16 >= 0 && data.light_raw_u16 <= 65535
   if (!calibrated && !raw) throw new Error('光照缺少有效的 lx 或 ADC 原码')
+  if (data.air_valid !== undefined && typeof data.air_valid !== 'boolean') throw new Error('air_valid 类型不正确')
+  if (data.eco2_ppm != null && (!Number.isInteger(data.eco2_ppm) || data.eco2_ppm < 0)) throw new Error('eco2_ppm 不正确')
+  if (data.tvoc_ppb != null && (!Number.isInteger(data.tvoc_ppb) || data.tvoc_ppb < 0)) throw new Error('tvoc_ppb 不正确')
   if (data.simulated && (data.people_count === null || !calibrated)) throw new Error('模拟格式缺少完整读数')
   return data
 }

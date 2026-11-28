@@ -271,6 +271,10 @@ function formatRow(row, nowMs) {
     humidity_pct: row.humidity_pct,
     light_lux: row.light_lux ?? null,
     light_raw_u16: row.light_raw_u16 ?? null,
+    air_valid: row.air_valid == null ? null : Boolean(row.air_valid),
+    air_status: row.air_status ?? null,
+    eco2_ppm: row.eco2_ppm ?? null,
+    tvoc_ppb: row.tvoc_ppb ?? null,
   }
 }
 
@@ -410,7 +414,8 @@ export function createTelemetryTools(db, getBrokerState, nowFn = () => Date.now(
         hardware_capabilities: {
           aht20_temperature_humidity: '已实测接入（板载 AHT20）',
           ldr_pc5_light_adc: '已实测接入（仅 16 位 ADC 原码，尚未标定 lx）',
-          light_lux_calibration: latest?.light_lux != null ? '已标定 lx' : '未标定（light_lux 为 null）',
+          light_lux_calibration: latest?.light_lux != null ? '已接入外接 BH1750（lx）' : '未标定（light_lux 为 null）',
+          sgp30_air_quality: latest?.air_valid ? `已连接（eCO₂ ${latest.eco2_ppm} ppm / TVOC ${latest.tvoc_ppb} ppb）` : '未连接或预热中',
           k230_people_count: latest?.people_count != null ? '已接入' : '尚未接入（people_count 为 null）',
           ac_actuator_control: '未接入（仅提供只读分析与建议，不执行控制下发）',
         },
